@@ -217,6 +217,7 @@ export function AISettingsModal({ isOpen, onClose, onSaved }: AISettingsModalPro
   const selectedPreset = providers.find((p) => p.id === selectedProviderId) ?? providers[0];
   const effectiveModel = model === '__custom__' ? customModel : model;
   const isClaudeProvider = selectedProviderId === 'claude';
+  const STORED_KEY_MASK = '•'.repeat(32);
 
   // Keep latest values accessible to the debounce callback without re-running the effect
   useEffect(() => {
@@ -448,14 +449,19 @@ export function AISettingsModal({ isOpen, onClose, onSaved }: AISettingsModalPro
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <input
-                  type={showKey ? 'text' : 'password'}
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  placeholder={
-                    initialConfigured
-                      ? 'Key saved — leave blank to keep, or paste a new one'
-                      : 'Paste your API key…'
-                  }
+                  type={showKey && apiKey !== '' ? 'text' : 'password'}
+                  value={initialConfigured && apiKey === '' ? STORED_KEY_MASK : apiKey}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    // Ignore if user somehow types the exact mask string
+                    if (v === STORED_KEY_MASK) return;
+                    setApiKey(v);
+                  }}
+                  onFocus={() => {
+                    // Clear the mask so the user can type a new key
+                    if (initialConfigured && apiKey === '') setApiKey('');
+                  }}
+                  placeholder="Paste your API key…"
                   autoComplete="off"
                   spellCheck={false}
                   className={clsx(

@@ -207,8 +207,15 @@ export function AIResultCard({
               const checked = checkedSegments.has(idx);
               return (
                 <li key={idx}>
-                  <label className="flex items-start gap-2 cursor-pointer group select-none">
-                    {/* Custom checkbox */}
+                  <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked={checked}
+                    aria-label={`Segment ${idx + 1}`}
+                    onClick={() => toggleSegment(idx)}
+                    className="flex items-start gap-2 w-full text-left group select-none focus:outline-none"
+                  >
+                    {/* Custom checkbox indicator */}
                     <span
                       className={clsx(
                         'mt-0.5 flex-shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-colors',
@@ -219,13 +226,6 @@ export function AIResultCard({
                     >
                       {checked && <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />}
                     </span>
-                    <input
-                      type="checkbox"
-                      className="sr-only"
-                      checked={checked}
-                      onChange={() => toggleSegment(idx)}
-                      aria-label={`Segment ${idx + 1}`}
-                    />
                     <span
                       className={clsx(
                         'text-sm leading-relaxed transition-all',
@@ -236,7 +236,7 @@ export function AIResultCard({
                     >
                       {seg}
                     </span>
-                  </label>
+                  </button>
                 </li>
               );
             })}

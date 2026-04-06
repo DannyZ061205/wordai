@@ -70,10 +70,19 @@ export function useGhostText(
 
     if (textBefore.trim().length < MIN_CHARS_BEFORE) return;
 
+    // If the text before cursor doesn't end with whitespace, the AI continuation
+    // needs a leading space so the two sentences don't run together.
+    const needsLeadingSpace = textBefore.length > 0 && !/[\s\n]$/.test(textBefore);
+
     activeStreamRef.current = true;
     accumulatedRef.current = '';
-    // Show the thinking indicator
     editor.commands.setGhostText('', true);
+
+    // Returns accumulated text with a leading space prepended when required.
+    const displayText = () => {
+      const t = accumulatedRef.current;
+      return needsLeadingSpace && t.length > 0 && !/^[\s\n]/.test(t) ? ' ' + t : t;
+    };
 
     try {
       const stream = await aiApi.stream(docId, {
@@ -90,14 +99,12 @@ export function useGhostText(
         if (chunk.done) break;
         if (chunk.chunk) {
           accumulatedRef.current += chunk.chunk;
-          // Stream each chunk into the inline decoration
-          editor.commands.setGhostText(accumulatedRef.current, true);
+          editor.commands.setGhostText(displayText(), true);
         }
       }
 
       if (isMountedRef.current && activeStreamRef.current) {
-        // Mark streaming as complete (removes thinking indicator)
-        editor.commands.setGhostText(accumulatedRef.current, false);
+        editor.commands.setGhostText(displayText(), false);
       }
     } catch {
       if (isMountedRef.current) {

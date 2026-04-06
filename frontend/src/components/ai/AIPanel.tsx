@@ -133,6 +133,7 @@ export function AIPanel({
   const [customPrompt, setCustomPrompt] = useState('');
   const [translateLang, setTranslateLang] = useState('Spanish');
   const [rewriteTone, setRewriteTone] = useState('professional');
+  const [justAccepted, setJustAccepted] = useState(false);
 
   const { loading, result, interactionId, error, streamAI, accept, reject, clear } =
     useAI(docId);
@@ -179,13 +180,22 @@ export function AIPanel({
     }
     await accept(text);
     clear();
-    setActiveFeature(null);
+    setJustAccepted(true);
     toast.success('AI suggestion accepted');
+  };
+
+  const handleUndo = () => {
+    if (!editor) return;
+    editor.commands.undo();
+    setJustAccepted(false);
+    setActiveFeature(null);
+    toast('Acceptance undone', { icon: '↩️' });
   };
 
   const handleReject = async () => {
     await reject();
     setActiveFeature(null);
+    setJustAccepted(false);
     toast('Suggestion rejected', { icon: '👎' });
   };
 
@@ -370,14 +380,16 @@ export function AIPanel({
                 </div>
 
                 {/* Result card */}
-                {(result || loading) && (
+                {(result || loading || justAccepted) && (
                   <div className="mt-2">
                     <AIResultCard
                       result={result}
                       loading={loading}
                       onAccept={handleAccept}
                       onReject={handleReject}
-                      onClear={() => { clear(); setActiveFeature(null); }}
+                      onClear={() => { clear(); setActiveFeature(null); setJustAccepted(false); }}
+                      onCancel={loading ? () => { clear(); toast('Generation stopped', { icon: '⏹' }); } : undefined}
+                      onUndo={justAccepted ? handleUndo : undefined}
                     />
                   </div>
                 )}

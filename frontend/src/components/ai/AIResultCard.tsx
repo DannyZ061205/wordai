@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, X, Edit3, Copy } from 'lucide-react';
+import { Check, X, Edit3, Copy, Square, Undo2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Button } from '../shared/Button';
 import toast from 'react-hot-toast';
@@ -10,6 +10,8 @@ interface AIResultCardProps {
   onAccept: (text: string) => void;
   onReject: () => void;
   onClear: () => void;
+  onCancel?: () => void;
+  onUndo?: () => void;
 }
 
 export function AIResultCard({
@@ -18,6 +20,8 @@ export function AIResultCard({
   onAccept,
   onReject,
   onClear,
+  onCancel,
+  onUndo,
 }: AIResultCardProps) {
   const [mode, setMode] = useState<'preview' | 'edit'>('preview');
   const [editedText, setEditedText] = useState('');
@@ -55,6 +59,16 @@ export function AIResultCard({
           AI Result
         </span>
         <div className="flex items-center gap-1">
+          {loading && onCancel && (
+            <button
+              onClick={onCancel}
+              className="flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 transition-colors"
+              aria-label="Stop generation"
+            >
+              <Square className="w-3 h-3 fill-current" />
+              Stop
+            </button>
+          )}
           {!loading && result && (
             <button
               onClick={handleCopy}
@@ -160,6 +174,21 @@ export function AIResultCard({
               </Button>
             </>
           )}
+        </div>
+      )}
+
+      {/* Undo banner — shown after acceptance */}
+      {onUndo && (
+        <div className="flex items-center justify-between px-3 py-2 border-t border-[#1a73e8]/20 bg-green-50/50 dark:bg-green-900/10">
+          <span className="text-xs text-green-700 dark:text-green-400">Suggestion applied</span>
+          <button
+            onClick={onUndo}
+            className="flex items-center gap-1 text-xs font-medium text-[#1a73e8] hover:underline"
+            aria-label="Undo acceptance"
+          >
+            <Undo2 className="w-3 h-3" />
+            Undo
+          </button>
         </div>
       )}
     </div>

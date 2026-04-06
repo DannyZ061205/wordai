@@ -580,10 +580,7 @@ export function AISettingsModal({ isOpen, onClose, onSaved }: AISettingsModalPro
           )}
 
           {/* Action row */}
-          <div
-            className="flex items-center justify-end gap-2 pt-1 border-t"
-            style={{ borderColor: 'var(--border)' }}
-          >
+          <div className="flex items-center justify-end gap-2 pt-1">
             <Button variant="ghost" size="sm" onClick={onClose} disabled={isSaving}>
               Cancel
             </Button>

@@ -59,6 +59,10 @@ async def websocket_endpoint(
             # and text (future control messages).
             message = await websocket.receive()
 
+            # Client closed the connection — exit cleanly.
+            if message["type"] == "websocket.disconnect":
+                break
+
             if "bytes" in message and message["bytes"] is not None:
                 await manager.handle_yjs_message(doc_id, user_id, message["bytes"])
             # Text frames are currently ignored; extend here as needed.

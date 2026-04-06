@@ -49,11 +49,11 @@ const PROVIDER_META: Record<string, ProviderMeta> = {
     iconColor: '#10a37f',
     tagline: 'GPT-4 & beyond',
   },
-  groq: {
-    id: 'groq',
+  grok: {
+    id: 'grok',
     icon: <Zap className="w-5 h-5" />,
-    iconColor: '#f97316',
-    tagline: 'Ultra-fast inference',
+    iconColor: '#a855f7',
+    tagline: 'xAI frontier model',
   },
   claude: {
     id: 'claude',
@@ -88,19 +88,12 @@ const FALLBACK_PRESETS: ProviderPreset[] = [
     description: 'Industry-leading models from OpenAI',
   },
   {
-    id: 'groq',
-    name: 'Groq',
-    base_url: 'https://api.groq.com/openai/v1',
-    default_model: 'llama-3.3-70b-versatile',
-    models: [
-      'llama-3.3-70b-versatile',
-      'llama-3.1-70b-versatile',
-      'llama-3.1-8b-instant',
-      'gemma2-9b-it',
-      'deepseek-r1-distill-llama-70b',
-      'qwen-qwq-32b',
-    ],
-    description: 'Ultra-fast inference with open-source models',
+    id: 'grok',
+    name: 'Grok',
+    base_url: 'https://api.x.ai/v1',
+    default_model: 'grok-4',
+    models: ['grok-4', 'grok-3', 'grok-3-mini'],
+    description: "xAI's Grok — frontier reasoning model by Elon Musk's xAI",
   },
   {
     id: 'claude',

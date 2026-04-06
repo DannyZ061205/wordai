@@ -332,9 +332,16 @@ body {
 }
 
 /* The suggested text itself — greyed out, same font as document */
-.ghost-text-content {
-  color: var(--text-secondary);
-  opacity: 0.55;
+/* Light mode: medium gray, clearly visible on white editor background */
+.ghost-text-content,
+.ProseMirror .ghost-text-content {
+  color: #9aa4ae;
+}
+
+/* Dark mode: medium-light gray, clearly visible on the dark editor background (#2d2d2d) */
+.dark .ghost-text-content,
+.dark .ProseMirror .ghost-text-content {
+  color: #8fa8c0;
 }
 
 /* Small "Tab" badge shown after the suggestion text */

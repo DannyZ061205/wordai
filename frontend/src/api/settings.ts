@@ -1,7 +1,7 @@
 import api from './axios';
 
 export interface ProviderPreset {
-  id: string;          // "deepseek" | "openai" | "groq" | "ollama" | "custom"
+  id: string;          // "deepseek" | "openai" | "groq" | "claude" | "custom"
   name: string;
   base_url: string;
   default_model: string;

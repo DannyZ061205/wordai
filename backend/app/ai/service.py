@@ -52,12 +52,12 @@ _prompt_loader = PromptLoader()
 # Per-user AI client resolution
 # ---------------------------------------------------------------------------
 
-def _get_client_config(user_id: str) -> tuple[str, str, str]:
-    """Return (api_key, base_url, model) for the given user.
+def _get_client_config(user_id: str) -> tuple[str, str, str, str]:
+    """Return (api_key, base_url, model, provider) for the given user.
 
     Priority:
       1. User's saved AI settings (provider + key they configured)
-      2. DEEPSEEK_API_KEY env var as system-wide fallback
+      2. DEEPSEEK_API_KEY env var as system-wide fallback (deepseek)
     """
     user_settings = store.get_ai_settings(user_id)
     if user_settings and user_settings.get("api_key"):
@@ -65,9 +65,10 @@ def _get_client_config(user_id: str) -> tuple[str, str, str]:
             user_settings["api_key"],
             user_settings.get("base_url", "https://api.deepseek.com"),
             user_settings.get("model", "deepseek-chat"),
+            user_settings.get("provider", "deepseek"),
         )
     # Fall back to env default
-    return settings.deepseek_api_key or "", "https://api.deepseek.com", "deepseek-chat"
+    return settings.deepseek_api_key or "", "https://api.deepseek.com", "deepseek-chat", "deepseek"
 
 
 # ---------------------------------------------------------------------------
@@ -142,7 +143,7 @@ async def stream_ai_response(
     import json
 
     # Resolve the user's configured provider (or env fallback)
-    api_key, base_url, model = _get_client_config(user_id)
+    api_key, base_url, model, provider = _get_client_config(user_id)
     if not api_key:
         yield f"data: {json.dumps({'error': 'No AI API key configured. Open Settings → AI Configuration to add your key.', 'done': True, 'no_api_key': True})}\n\n"
         return
@@ -152,17 +153,31 @@ async def stream_ai_response(
     interaction_id = str(uuid.uuid4())
 
     try:
-        client = AsyncOpenAI(api_key=api_key, base_url=base_url)
-        stream = await client.chat.completions.create(
-            model=model,
-            messages=[{"role": "user", "content": prompt}],
-            stream=True,
-        )
-        async for chunk in stream:
-            delta = chunk.choices[0].delta.content or ""
-            if delta:
-                full_response.append(delta)
-                yield f"data: {json.dumps({'chunk': delta, 'done': False})}\n\n"
+        # Claude / Anthropic uses its own SDK and streaming API
+        if provider == "claude":
+            import anthropic as _anthropic
+            anthropic_client = _anthropic.AsyncAnthropic(api_key=api_key)
+            async with anthropic_client.messages.stream(
+                model=model,
+                max_tokens=2048,
+                messages=[{"role": "user", "content": prompt}],
+            ) as stream:
+                async for text in stream.text_stream:
+                    if text:
+                        full_response.append(text)
+                        yield f"data: {json.dumps({'chunk': text, 'done': False})}\n\n"
+        else:
+            openai_client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+            stream = await openai_client.chat.completions.create(
+                model=model,
+                messages=[{"role": "user", "content": prompt}],
+                stream=True,
+            )
+            async for chunk in stream:
+                delta = chunk.choices[0].delta.content or ""
+                if delta:
+                    full_response.append(delta)
+                    yield f"data: {json.dumps({'chunk': delta, 'done': False})}\n\n"
 
     except Exception as exc:
         msg = str(exc)

@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Sparkles,
   Brain,
   Zap,
-  Server,
+  Bot,
   Settings,
   Eye,
   EyeOff,
@@ -16,13 +16,15 @@ import { clsx } from 'clsx';
 import toast from 'react-hot-toast';
 import { Modal } from '../shared/Modal';
 import { Button } from '../shared/Button';
-import { settingsApi, ProviderPreset, AISettings, AISettingsUpdate } from '../../api/settings';
+import { settingsApi, ProviderPreset, AISettingsUpdate } from '../../api/settings';
 
 interface AISettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSaved?: () => void;
 }
+
+type KeyStatus = 'idle' | 'testing' | 'ok' | 'error';
 
 // ── Provider card metadata ──────────────────────────────────────────────────
 
@@ -52,11 +54,11 @@ const PROVIDER_META: Record<string, ProviderMeta> = {
     iconColor: '#f97316',
     tagline: 'Ultra-fast inference',
   },
-  ollama: {
-    id: 'ollama',
-    icon: <Server className="w-5 h-5" />,
-    iconColor: '#8b5cf6',
-    tagline: 'Local models',
+  claude: {
+    id: 'claude',
+    icon: <Bot className="w-5 h-5" />,
+    iconColor: '#c96442',
+    tagline: 'Thoughtful & powerful',
   },
   custom: {
     id: 'custom',
@@ -73,32 +75,32 @@ const FALLBACK_PRESETS: ProviderPreset[] = [
     name: 'DeepSeek',
     base_url: 'https://api.deepseek.com',
     default_model: 'deepseek-chat',
-    models: ['deepseek-chat', 'deepseek-coder', 'deepseek-reasoner'],
-    description: 'DeepSeek AI models',
+    models: ['deepseek-chat', 'deepseek-reasoner'],
+    description: 'Fast, cost-effective Chinese LLM with strong coding/reasoning',
   },
   {
     id: 'openai',
     name: 'OpenAI',
     base_url: 'https://api.openai.com/v1',
     default_model: 'gpt-4o',
-    models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'],
-    description: 'OpenAI GPT models',
+    models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo'],
+    description: 'Industry-leading models from OpenAI',
   },
   {
     id: 'groq',
     name: 'Groq',
     base_url: 'https://api.groq.com/openai/v1',
-    default_model: 'llama3-8b-8192',
-    models: ['llama3-8b-8192', 'llama3-70b-8192', 'mixtral-8x7b-32768', 'gemma-7b-it'],
-    description: 'Groq ultra-fast inference',
+    default_model: 'llama-3.3-70b-versatile',
+    models: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768', 'gemma2-9b-it'],
+    description: 'Ultra-fast inference with open-source models',
   },
   {
-    id: 'ollama',
-    name: 'Ollama',
-    base_url: 'http://localhost:11434/v1',
-    default_model: 'llama3',
-    models: ['llama3', 'llama3:70b', 'mistral', 'codellama', 'phi3'],
-    description: 'Local models via Ollama',
+    id: 'claude',
+    name: 'Claude',
+    base_url: 'https://api.anthropic.com',
+    default_model: 'claude-sonnet-4-6',
+    models: ['claude-opus-4-6', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001'],
+    description: "Anthropic's Claude — thoughtful, safe, and powerful",
   },
   {
     id: 'custom',
@@ -106,7 +108,7 @@ const FALLBACK_PRESETS: ProviderPreset[] = [
     base_url: '',
     default_model: '',
     models: [],
-    description: 'Any OpenAI-compatible endpoint',
+    description: 'Any OpenAI-compatible endpoint (LM Studio, Azure, vLLM, etc.)',
   },
 ];
 
@@ -160,28 +162,31 @@ function ProviderCard({ preset, selected, onClick }: ProviderCardProps) {
   );
 }
 
-// ── Test Result Banner ──────────────────────────────────────────────────────
+// ── Key status indicator ────────────────────────────────────────────────────
 
-interface TestResultProps {
-  ok: boolean;
-  message: string;
-}
+function KeyStatusIndicator({ status, message }: { status: KeyStatus; message: string }) {
+  if (status === 'idle') return null;
 
-function TestResultBanner({ ok, message }: TestResultProps) {
+  if (status === 'testing') {
+    return (
+      <div className="flex items-center gap-1.5 mt-1.5 text-xs" style={{ color: 'var(--text-secondary)' }}>
+        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        <span>Verifying API key…</span>
+      </div>
+    );
+  }
+
   return (
     <div
       className={clsx(
-        'flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm mt-2 animate-fade-in',
-        ok
-          ? 'bg-green-50 dark:bg-green-900/20 text-[#34a853]'
-          : 'bg-red-50 dark:bg-red-900/20 text-[#d93025]'
+        'flex items-center gap-1.5 mt-1.5 text-xs',
+        status === 'ok' ? 'text-[#34a853]' : 'text-[#d93025]'
       )}
-      role="status"
     >
-      {ok ? (
-        <CheckCircle className="w-4 h-4 flex-shrink-0" />
+      {status === 'ok' ? (
+        <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" />
       ) : (
-        <XCircle className="w-4 h-4 flex-shrink-0" />
+        <XCircle className="w-3.5 h-3.5 flex-shrink-0" />
       )}
       <span>{message}</span>
     </div>
@@ -199,31 +204,81 @@ export function AISettingsModal({ isOpen, onClose, onSaved }: AISettingsModalPro
   const [customModel, setCustomModel] = useState('');
   const [baseUrl, setBaseUrl] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const [isTesting, setIsTesting] = useState(false);
-  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [loadingInitial, setLoadingInitial] = useState(false);
+  const [keyStatus, setKeyStatus] = useState<KeyStatus>('idle');
+  const [keyStatusMessage, setKeyStatusMessage] = useState('');
+  const [initialConfigured, setInitialConfigured] = useState(false);
+
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Ref to always have latest values in the async debounce callback
+  const latestRef = useRef({ baseUrl, effectiveModel: '', selectedProviderId });
 
   const selectedPreset = providers.find((p) => p.id === selectedProviderId) ?? providers[0];
-
-  // Determine the effective model value for submission
   const effectiveModel = model === '__custom__' ? customModel : model;
+  const isClaudeProvider = selectedProviderId === 'claude';
 
-  // Reset test result whenever key inputs change
-  const clearTestResult = useCallback(() => setTestResult(null), []);
+  // Keep latest values accessible to the debounce callback without re-running the effect
+  useEffect(() => {
+    latestRef.current = { baseUrl, effectiveModel, selectedProviderId };
+  }, [baseUrl, effectiveModel, selectedProviderId]);
+
+  // Can save if:
+  //   (a) user left the key blank and a key was already saved → keep existing key
+  //   (b) user typed a new key and it passed the connection test
+  const canSave = (apiKey.trim() === '' && initialConfigured) || keyStatus === 'ok';
+
+  // Auto-test API key — triggers 1.5 s after user stops typing, or on provider change
+  useEffect(() => {
+    if (!apiKey.trim()) {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      setKeyStatus('idle');
+      setKeyStatusMessage('');
+      return;
+    }
+
+    // Show "testing" immediately, then wait for debounce
+    setKeyStatus('testing');
+    setKeyStatusMessage('');
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    debounceRef.current = setTimeout(async () => {
+      const { baseUrl: curBaseUrl, effectiveModel: curModel, selectedProviderId: curProvider } =
+        latestRef.current;
+      try {
+        const result = await settingsApi.testConnection({
+          provider: curProvider,
+          api_key: apiKey,
+          base_url: curBaseUrl,
+          model: curModel,
+        });
+        setKeyStatus(result.ok ? 'ok' : 'error');
+        setKeyStatusMessage(result.message);
+      } catch {
+        setKeyStatus('error');
+        setKeyStatusMessage('Connection test failed. Check your settings.');
+      }
+    }, 1500);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [apiKey, selectedProviderId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // When a provider is selected, auto-fill base_url and reset model
   const handleProviderSelect = useCallback(
     (providerId: string) => {
       setSelectedProviderId(providerId);
-      clearTestResult();
       const preset = providers.find((p) => p.id === providerId);
       if (preset) {
         setBaseUrl(preset.base_url);
         setModel(preset.default_model || (preset.models[0] ?? ''));
         setCustomModel('');
       }
+      // Reset key status so the debounce effect re-fires with the new provider
+      setKeyStatus(apiKey.trim() ? 'testing' : 'idle');
+      setKeyStatusMessage('');
     },
-    [providers, clearTestResult]
+    [providers, apiKey]
   );
 
   // Load current settings and providers on open
@@ -232,32 +287,30 @@ export function AISettingsModal({ isOpen, onClose, onSaved }: AISettingsModalPro
 
     let cancelled = false;
     setLoadingInitial(true);
-    setTestResult(null);
+    setKeyStatus('idle');
+    setKeyStatusMessage('');
     setShowKey(false);
+    setInitialConfigured(false);
 
     Promise.all([settingsApi.getAI(), settingsApi.getProviders()])
       .then(([currentSettings, fetchedProviders]) => {
         if (cancelled) return;
 
         const presetsToUse =
-          fetchedProviders && fetchedProviders.length > 0
-            ? fetchedProviders
-            : FALLBACK_PRESETS;
+          fetchedProviders && fetchedProviders.length > 0 ? fetchedProviders : FALLBACK_PRESETS;
         setProviders(presetsToUse);
 
         if (currentSettings && currentSettings.is_configured) {
-          // Pre-fill with current settings
           const providerId = currentSettings.provider || 'deepseek';
           setSelectedProviderId(providerId);
           setBaseUrl(currentSettings.base_url);
-
-          // Show masked key as placeholder-style hint in the field
-          // The actual input stays empty (user must re-enter to change)
-          setApiKey('');
+          setApiKey(''); // key stays blank; user re-enters to change it
+          setInitialConfigured(true);
+          setKeyStatus('ok'); // treat saved key as already validated
+          setKeyStatusMessage('API key is configured');
 
           const presetForProvider = presetsToUse.find((p) => p.id === providerId);
           const savedModel = currentSettings.model;
-
           if (
             presetForProvider &&
             presetForProvider.models.length > 0 &&
@@ -271,18 +324,17 @@ export function AISettingsModal({ isOpen, onClose, onSaved }: AISettingsModalPro
             setCustomModel('');
           }
         } else {
-          // Defaults: first preset
           const defaultPreset = presetsToUse[0];
           setSelectedProviderId(defaultPreset.id);
           setBaseUrl(defaultPreset.base_url);
           setModel(defaultPreset.default_model || defaultPreset.models[0] || '');
           setApiKey('');
           setCustomModel('');
+          setInitialConfigured(false);
         }
       })
       .catch(() => {
         if (cancelled) return;
-        // Fall back to defaults with fallback presets
         const defaultPreset = FALLBACK_PRESETS[0];
         setProviders(FALLBACK_PRESETS);
         setSelectedProviderId(defaultPreset.id);
@@ -290,6 +342,7 @@ export function AISettingsModal({ isOpen, onClose, onSaved }: AISettingsModalPro
         setModel(defaultPreset.default_model);
         setApiKey('');
         setCustomModel('');
+        setInitialConfigured(false);
       })
       .finally(() => {
         if (!cancelled) setLoadingInitial(false);
@@ -300,35 +353,24 @@ export function AISettingsModal({ isOpen, onClose, onSaved }: AISettingsModalPro
     };
   }, [isOpen]);
 
-  const buildPayload = (): AISettingsUpdate => ({
-    provider: selectedProviderId,
-    api_key: apiKey,
-    base_url: baseUrl,
-    model: effectiveModel,
-  });
-
-  const handleTestConnection = async () => {
-    setIsTesting(true);
-    setTestResult(null);
-    try {
-      const result = await settingsApi.testConnection(buildPayload());
-      setTestResult(result);
-    } catch {
-      setTestResult({ ok: false, message: 'Connection test failed. Check your settings.' });
-    } finally {
-      setIsTesting(false);
-    }
-  };
-
   const handleSave = async () => {
-    if (!effectiveModel.trim() || !baseUrl.trim()) {
-      toast.error('Model and Base URL are required');
+    if (!effectiveModel.trim()) {
+      toast.error('Model is required');
+      return;
+    }
+    if (!isClaudeProvider && !baseUrl.trim()) {
+      toast.error('Base URL is required');
       return;
     }
 
     setIsSaving(true);
     try {
-      await settingsApi.updateAI(buildPayload());
+      await settingsApi.updateAI({
+        provider: selectedProviderId,
+        api_key: apiKey.trim(), // empty string = keep existing key (backend handles it)
+        base_url: isClaudeProvider ? 'https://api.anthropic.com' : baseUrl,
+        model: effectiveModel,
+      });
       toast.success('AI settings saved');
       onSaved?.();
       onClose();
@@ -342,22 +384,24 @@ export function AISettingsModal({ isOpen, onClose, onSaved }: AISettingsModalPro
   const handleClearKey = () => {
     setApiKey('');
     setShowKey(false);
-    clearTestResult();
+    setKeyStatus('idle');
+    setKeyStatusMessage('');
   };
 
   const handleModelChange = (value: string) => {
     setModel(value);
-    clearTestResult();
     if (value !== '__custom__') setCustomModel('');
   };
 
+  // Compute border color for the API key input based on keyStatus
+  const keyBorderClass = (() => {
+    if (keyStatus === 'ok') return 'border-[#34a853] focus:border-[#34a853] focus:ring-[#34a853]/20';
+    if (keyStatus === 'error') return 'border-[#d93025] focus:border-[#d93025] focus:ring-[#d93025]/20';
+    return 'border-[color:var(--border)] focus:border-[#1a73e8] focus:ring-[#1a73e8]/20';
+  })();
+
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="AI Configuration"
-      size="xl"
-    >
+    <Modal isOpen={isOpen} onClose={onClose} title="AI Configuration" size="xl">
       {loadingInitial ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-6 h-6 animate-spin text-[#1a73e8]" />
@@ -402,25 +446,22 @@ export function AISettingsModal({ isOpen, onClose, onSaved }: AISettingsModalPro
                 <input
                   type={showKey ? 'text' : 'password'}
                   value={apiKey}
-                  onChange={(e) => {
-                    setApiKey(e.target.value);
-                    clearTestResult();
-                  }}
+                  onChange={(e) => setApiKey(e.target.value)}
                   placeholder={
-                    selectedProviderId === 'ollama'
-                      ? 'No API key required'
-                      : 'Enter API key…'
+                    initialConfigured
+                      ? 'Key saved — leave blank to keep, or paste a new one'
+                      : 'Paste your API key…'
                   }
                   autoComplete="off"
                   spellCheck={false}
                   className={clsx(
                     'w-full px-3 py-2.5 text-sm rounded-md pr-10',
-                    'border transition-all duration-150 outline-none',
+                    'border-2 transition-all duration-150 outline-none',
                     'bg-[color:var(--bg-surface)] text-[color:var(--text-primary)]',
                     'placeholder:text-[color:var(--text-secondary)] placeholder:opacity-70',
-                    'border-[color:var(--border)] focus:border-[#1a73e8] focus:ring-2 focus:ring-[#1a73e8]/20'
+                    'focus:ring-2',
+                    keyBorderClass
                   )}
-                  disabled={selectedProviderId === 'ollama'}
                 />
                 <button
                   type="button"
@@ -429,11 +470,7 @@ export function AISettingsModal({ isOpen, onClose, onSaved }: AISettingsModalPro
                   aria-label={showKey ? 'Hide API key' : 'Show API key'}
                   tabIndex={-1}
                 >
-                  {showKey ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
+                  {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
               <button
@@ -452,6 +489,7 @@ export function AISettingsModal({ isOpen, onClose, onSaved }: AISettingsModalPro
                 <span>Clear</span>
               </button>
             </div>
+            <KeyStatusIndicator status={keyStatus} message={keyStatusMessage} />
           </div>
 
           {/* Model selector */}
@@ -482,14 +520,10 @@ export function AISettingsModal({ isOpen, onClose, onSaved }: AISettingsModalPro
                 <option value="__custom__">Custom model…</option>
               </select>
             ) : (
-              // No preset models (custom provider)
               <input
                 type="text"
                 value={model === '__custom__' ? customModel : model}
-                onChange={(e) => {
-                  setModel(e.target.value);
-                  clearTestResult();
-                }}
+                onChange={(e) => setModel(e.target.value)}
                 placeholder="e.g. gpt-4o-mini"
                 className={clsx(
                   'w-full px-3 py-2.5 text-sm rounded-md',
@@ -501,15 +535,11 @@ export function AISettingsModal({ isOpen, onClose, onSaved }: AISettingsModalPro
               />
             )}
 
-            {/* Custom model text input when "Custom model…" is selected */}
             {model === '__custom__' && selectedPreset && selectedPreset.models.length > 0 && (
               <input
                 type="text"
                 value={customModel}
-                onChange={(e) => {
-                  setCustomModel(e.target.value);
-                  clearTestResult();
-                }}
+                onChange={(e) => setCustomModel(e.target.value)}
                 placeholder="Type model name…"
                 className={clsx(
                   'w-full mt-2 px-3 py-2.5 text-sm rounded-md',
@@ -523,68 +553,54 @@ export function AISettingsModal({ isOpen, onClose, onSaved }: AISettingsModalPro
             )}
           </div>
 
-          {/* Base URL */}
-          <div>
-            <label
-              className="block text-sm font-medium mb-1.5"
-              style={{ color: 'var(--text-primary)' }}
-            >
-              Base URL
-              <span
-                className="ml-1.5 text-xs font-normal"
-                style={{ color: 'var(--text-secondary)' }}
+          {/* Base URL — hidden for Claude (uses Anthropic SDK internally) */}
+          {!isClaudeProvider && (
+            <div>
+              <label
+                className="block text-sm font-medium mb-1.5"
+                style={{ color: 'var(--text-primary)' }}
               >
-                (auto-filled, editable)
-              </span>
-            </label>
-            <input
-              type="url"
-              value={baseUrl}
-              onChange={(e) => {
-                setBaseUrl(e.target.value);
-                clearTestResult();
-              }}
-              placeholder="https://api.example.com/v1"
-              className={clsx(
-                'w-full px-3 py-2.5 text-sm rounded-md',
-                'border transition-all duration-150 outline-none',
-                'bg-[color:var(--bg-surface)] text-[color:var(--text-primary)]',
-                'placeholder:text-[color:var(--text-secondary)] placeholder:opacity-70',
-                'border-[color:var(--border)] focus:border-[#1a73e8] focus:ring-2 focus:ring-[#1a73e8]/20',
-                'font-mono text-xs'
-              )}
-            />
-          </div>
-
-          {/* Test connection result */}
-          {testResult && (
-            <TestResultBanner ok={testResult.ok} message={testResult.message} />
+                Base URL
+                <span
+                  className="ml-1.5 text-xs font-normal"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
+                  (auto-filled, editable)
+                </span>
+              </label>
+              <input
+                type="url"
+                value={baseUrl}
+                onChange={(e) => setBaseUrl(e.target.value)}
+                placeholder="https://api.example.com/v1"
+                className={clsx(
+                  'w-full px-3 py-2.5 text-sm rounded-md',
+                  'border transition-all duration-150 outline-none',
+                  'bg-[color:var(--bg-surface)] text-[color:var(--text-primary)]',
+                  'placeholder:text-[color:var(--text-secondary)] placeholder:opacity-70',
+                  'border-[color:var(--border)] focus:border-[#1a73e8] focus:ring-2 focus:ring-[#1a73e8]/20',
+                  'font-mono text-xs'
+                )}
+              />
+            </div>
           )}
 
           {/* Action row */}
-          <div className="flex items-center justify-between pt-1 border-t" style={{ borderColor: 'var(--border)' }}>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={handleTestConnection}
-              loading={isTesting}
-              icon={<Zap className="w-3.5 h-3.5" />}
-            >
-              Test Connection
+          <div
+            className="flex items-center justify-end gap-2 pt-1 border-t"
+            style={{ borderColor: 'var(--border)' }}
+          >
+            <Button variant="ghost" size="sm" onClick={onClose} disabled={isSaving}>
+              Cancel
             </Button>
-
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" onClick={onClose} disabled={isSaving}>
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                onClick={handleSave}
-                loading={isSaving}
-              >
-                Save
-              </Button>
-            </div>
+            <Button
+              size="sm"
+              onClick={handleSave}
+              loading={isSaving}
+              disabled={!canSave || isSaving}
+            >
+              Save
+            </Button>
           </div>
         </div>
       )}

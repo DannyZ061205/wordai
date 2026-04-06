@@ -51,12 +51,12 @@ PROVIDER_PRESETS: list[ProviderPreset] = [
         description="Ultra-fast inference with open-source models",
     ),
     ProviderPreset(
-        id="ollama",
-        name="Ollama (Local)",
-        base_url="http://localhost:11434/v1",
-        default_model="llama3",
-        models=["llama3", "llama3.2", "mistral", "codellama", "phi3", "gemma2"],
-        description="Run models locally — no API key required",
+        id="claude",
+        name="Claude",
+        base_url="https://api.anthropic.com",
+        default_model="claude-sonnet-4-6",
+        models=["claude-opus-4-6", "claude-sonnet-4-6", "claude-haiku-4-5-20251001"],
+        description="Anthropic's Claude — thoughtful, safe, and powerful",
     ),
     ProviderPreset(
         id="custom",
@@ -125,23 +125,35 @@ async def update_ai_settings(
     current_user: dict = Depends(get_current_user),
 ):
     """Save the user's AI provider settings."""
-    if not body.api_key.strip():
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="api_key cannot be empty",
-        )
-    if not body.base_url.strip():
+    user_id = current_user["id"]
+
+    # Resolve API key: use the new one if provided, otherwise keep the existing one
+    if body.api_key.strip():
+        api_key = body.api_key.strip()
+    else:
+        existing = store.get_ai_settings(user_id)
+        if existing and existing.get("api_key"):
+            api_key = existing["api_key"]
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="api_key cannot be empty",
+            )
+
+    # Claude uses the Anthropic SDK — no base_url validation needed
+    if body.provider != "claude" and not body.base_url.strip():
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="base_url cannot be empty",
         )
+
     raw = {
         "provider": body.provider,
-        "api_key": body.api_key.strip(),
-        "base_url": body.base_url.strip().rstrip("/"),
+        "api_key": api_key,
+        "base_url": body.base_url.strip().rstrip("/") if body.base_url.strip() else "https://api.anthropic.com",
         "model": body.model.strip() or _PRESET_MAP.get(body.provider, PROVIDER_PRESETS[-1]).default_model,
     }
-    store.upsert_ai_settings(current_user["id"], raw)
+    store.upsert_ai_settings(user_id, raw)
     return _settings_to_response(raw)
 
 
@@ -160,6 +172,30 @@ async def test_ai_connection(
     if not body.api_key.strip():
         return TestConnectionResponse(ok=False, message="API key is required")
 
+    # Claude / Anthropic uses a separate SDK
+    if body.provider == "claude":
+        try:
+            import anthropic as _anthropic
+            client = _anthropic.AsyncAnthropic(api_key=body.api_key.strip())
+            response = await client.messages.create(
+                model=body.model or "claude-haiku-4-5-20251001",
+                max_tokens=5,
+                messages=[{"role": "user", "content": "Say 'ok'."}],
+            )
+            reply = response.content[0].text if response.content else ""
+            return TestConnectionResponse(
+                ok=True,
+                message=f"Connection successful! Claude replied: \"{reply.strip()}\"",
+            )
+        except Exception as exc:
+            msg = str(exc)
+            if "401" in msg or "authentication" in msg.lower() or "api_key" in msg.lower():
+                msg = "Invalid API key — double-check it and try again"
+            elif "404" in msg or "not found" in msg.lower():
+                msg = f"Model '{body.model}' not found — check model name"
+            return TestConnectionResponse(ok=False, message=msg)
+
+    # All other providers use the OpenAI-compatible API
     base_url = body.base_url.strip().rstrip("/")
     if not base_url:
         return TestConnectionResponse(ok=False, message="Base URL is required")
@@ -178,7 +214,6 @@ async def test_ai_connection(
         )
     except Exception as exc:
         msg = str(exc)
-        # Friendlier messages for common errors
         if "401" in msg or "authentication" in msg.lower() or "api key" in msg.lower():
             msg = "Invalid API key — double-check it and try again"
         elif "404" in msg or "not found" in msg.lower():

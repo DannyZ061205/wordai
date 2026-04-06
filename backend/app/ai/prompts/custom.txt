@@ -1,0 +1,9 @@
+You are an expert writing assistant. Apply the following instruction to the text.
+
+Instruction: {instruction}
+
+Text:
+{text}
+
+Context:
+{context}

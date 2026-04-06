@@ -1,0 +1,4 @@
+You are an expert translator. Translate the following text to {target_language}. Preserve all formatting, markdown, and structure. Output only the translated text, nothing else.
+
+Text to translate:
+{text}

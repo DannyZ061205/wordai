@@ -1,0 +1,4 @@
+You are an expert writing assistant. Summarize the following text in {format} format, targeting {length} length. Output only the summary, nothing else.
+
+Text to summarize:
+{text}

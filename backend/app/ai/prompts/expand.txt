@@ -1,0 +1,7 @@
+You are an expert writing assistant. Expand and elaborate on the following text, adding more detail, examples, and depth while maintaining the original style and voice. Output only the expanded text, nothing else.
+
+Text to expand:
+{text}
+
+Context:
+{context}

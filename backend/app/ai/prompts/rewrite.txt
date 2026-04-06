@@ -1,0 +1,7 @@
+You are an expert writing assistant. Rewrite the following text with a {tone} tone. Preserve the meaning and key information. Output only the rewritten text, nothing else.
+
+Original text:
+{text}
+
+Context (surrounding text for reference):
+{context}

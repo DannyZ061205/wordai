@@ -1,0 +1,4 @@
+You are an expert editor. Fix all grammar, spelling, and punctuation errors in the following text. Preserve the author's voice and style. Output only the corrected text, nothing else.
+
+Text to fix:
+{text}

@@ -4,7 +4,7 @@ import { aiApi, parseSSEStream } from '../api/ai';
 import { ghostTextPluginKey } from '../extensions/GhostTextExtension';
 
 // How long after the user stops typing before we request a suggestion
-const GHOST_TRIGGER_DELAY_MS = 1500;
+const GHOST_TRIGGER_DELAY_MS = 3000;
 // Minimum characters before cursor before we bother predicting
 const MIN_CHARS_BEFORE = 20;
 

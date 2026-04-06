@@ -107,33 +107,28 @@ export const GhostTextExtension = Extension.create({
               return DecorationSet.empty;
             }
 
+            // Only render when we have actual text to show
+            if (!ghost.text) return DecorationSet.empty;
+
             const wrapper = document.createElement('span');
             wrapper.className = 'ghost-text-widget';
 
-            if (ghost.isPredicting && !ghost.text) {
-              // Thinking indicator — three bouncing dots (animated via CSS)
-              const dots = document.createElement('span');
-              dots.className = 'ghost-text-thinking';
-              dots.appendChild(document.createElement('span'));
-              dots.appendChild(document.createElement('span'));
-              dots.appendChild(document.createElement('span'));
-              wrapper.appendChild(dots);
-            } else if (ghost.text) {
-              const textNode = document.createElement('span');
-              textNode.className = 'ghost-text-content';
-              textNode.textContent = ghost.text;
-              wrapper.appendChild(textNode);
+            const textNode = document.createElement('span');
+            textNode.className = 'ghost-text-content';
+            textNode.textContent = ghost.text;
+            wrapper.appendChild(textNode);
 
-              // "Tab" hint badge
-              const hint = document.createElement('kbd');
-              hint.className = 'ghost-text-hint';
-              hint.textContent = 'Tab';
-              wrapper.appendChild(hint);
-            }
+            const hint = document.createElement('kbd');
+            hint.className = 'ghost-text-hint';
+            hint.textContent = 'Tab';
+            wrapper.appendChild(hint);
 
+            // No static key — ProseMirror must replace the DOM node every
+            // time the text changes (a static key causes it to reuse the old
+            // DOM, which is why the text never appeared).
             try {
               return DecorationSet.create(state.doc, [
-                Decoration.widget(pos, wrapper, { side: 1, key: 'ghost-text' }),
+                Decoration.widget(pos, wrapper, { side: 1 }),
               ]);
             } catch {
               return DecorationSet.empty;

@@ -92,7 +92,14 @@ const FALLBACK_PRESETS: ProviderPreset[] = [
     name: 'Groq',
     base_url: 'https://api.groq.com/openai/v1',
     default_model: 'llama-3.3-70b-versatile',
-    models: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768', 'gemma2-9b-it'],
+    models: [
+      'llama-3.3-70b-versatile',
+      'llama-3.1-70b-versatile',
+      'llama-3.1-8b-instant',
+      'gemma2-9b-it',
+      'deepseek-r1-distill-llama-70b',
+      'qwen-qwq-32b',
+    ],
     description: 'Ultra-fast inference with open-source models',
   },
   {

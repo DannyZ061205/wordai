@@ -104,10 +104,12 @@ export const GhostTextExtension = Extension.create({
             wrapper.className = 'ghost-text-widget';
 
             if (ghost.isPredicting && !ghost.text) {
-              // Thinking indicator — three animated dots
+              // Thinking indicator — three bouncing dots (animated via CSS)
               const dots = document.createElement('span');
               dots.className = 'ghost-text-thinking';
-              dots.textContent = '●●●';
+              dots.appendChild(document.createElement('span'));
+              dots.appendChild(document.createElement('span'));
+              dots.appendChild(document.createElement('span'));
               wrapper.appendChild(dots);
             } else if (ghost.text) {
               const textNode = document.createElement('span');

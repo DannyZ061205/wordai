@@ -1,0 +1,366 @@
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import {
+  ArrowLeft,
+  Share2,
+  Clock,
+  History,
+  Sparkles,
+  Check,
+  Cloud,
+  CloudOff,
+  Loader2,
+} from 'lucide-react';
+import toast from 'react-hot-toast';
+import { clsx } from 'clsx';
+import { EditorProvider, useEditorContext } from '../components/editor/EditorContext';
+import { RichTextEditor } from '../components/editor/RichTextEditor';
+import { ShareModal } from '../components/editor/ShareModal';
+import { VersionHistoryPanel } from '../components/editor/VersionHistoryPanel';
+import { AIPanel } from '../components/ai/AIPanel';
+import { AIHistoryModal } from '../components/ai/AIHistoryModal';
+import { PresenceBar } from '../components/collaboration/PresenceBar';
+import { ThemeToggle } from '../components/shared/ThemeToggle';
+import { Tooltip } from '../components/shared/Tooltip';
+import { Avatar } from '../components/shared/Avatar';
+import { Spinner } from '../components/shared/Spinner';
+import { documentsApi } from '../api/documents';
+import { aiApi } from '../api/ai';
+import { useDocumentStore } from '../store/document';
+import { useAuthStore } from '../store/auth';
+import { Document, AIInteraction, Collaborator } from '../types';
+
+const SAVE_STATUS_MAP = {
+  saved: { icon: <Check className="w-3.5 h-3.5" />, label: 'Saved', color: '#34a853' },
+  saving: { icon: <Loader2 className="w-3.5 h-3.5 animate-spin" />, label: 'Saving…', color: '#fbbc04' },
+  unsaved: { icon: <CloudOff className="w-3.5 h-3.5" />, label: 'Unsaved', color: '#d93025' },
+};
+
+function SaveStatusIndicator() {
+  const saveStatus = useDocumentStore((s) => s.saveStatus);
+  const status = SAVE_STATUS_MAP[saveStatus];
+
+  return (
+    <div
+      className="flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-md transition-all duration-300"
+      style={{ color: status.color }}
+    >
+      {status.icon}
+      <span className="hidden sm:inline">{status.label}</span>
+    </div>
+  );
+}
+
+interface EditableTitleProps {
+  title: string;
+  onSave: (title: string) => void;
+}
+
+function EditableTitle({ title, onSave }: EditableTitleProps) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(title);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setValue(title);
+  }, [title]);
+
+  useEffect(() => {
+    if (editing) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+  }, [editing]);
+
+  const handleBlur = () => {
+    setEditing(false);
+    const trimmed = value.trim();
+    if (trimmed && trimmed !== title) {
+      onSave(trimmed);
+    } else {
+      setValue(title);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') inputRef.current?.blur();
+    if (e.key === 'Escape') {
+      setValue(title);
+      setEditing(false);
+    }
+  };
+
+  return editing ? (
+    <input
+      ref={inputRef}
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
+      className={clsx(
+        'text-sm font-semibold px-2 py-1 rounded-md border',
+        'bg-[color:var(--bg-surface)] text-[color:var(--text-primary)]',
+        'border-[#1a73e8] ring-2 ring-[#1a73e8]/20 outline-none',
+        'min-w-[120px] max-w-[300px]'
+      )}
+      maxLength={100}
+    />
+  ) : (
+    <button
+      onClick={() => setEditing(true)}
+      className={clsx(
+        'text-sm font-semibold px-2 py-1 rounded-md',
+        'text-[color:var(--text-primary)]',
+        'hover:bg-[color:var(--border)] transition-colors',
+        'max-w-[300px] truncate'
+      )}
+      title="Click to rename"
+    >
+      {title || 'Untitled document'}
+    </button>
+  );
+}
+
+function EditorPageInner() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { editor } = useEditorContext();
+  const { setCurrentDoc, updateDocumentTitle } = useDocumentStore();
+  const user = useAuthStore((s) => s.user);
+
+  // If navigated from dashboard with doc in state, use it immediately (no extra GET)
+  const prefetchedDoc = (location.state as { doc?: Document } | null)?.doc ?? null;
+
+  const [doc, setDoc] = useState<Document | null>(prefetchedDoc);
+  const [loading, setLoading] = useState(!prefetchedDoc);
+  const [aiPanelCollapsed, setAiPanelCollapsed] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
+  const [aiHistoryOpen, setAiHistoryOpen] = useState(false);
+  const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
+  const [aiInteractions, setAiInteractions] = useState<AIInteraction[]>([]);
+  const [isPredicting, setIsPredicting] = useState(false);
+
+  // Sync prefetched doc into store
+  useEffect(() => {
+    if (prefetchedDoc) setCurrentDoc(prefetchedDoc);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load document only when not already available via navigation state
+  useEffect(() => {
+    if (!id || prefetchedDoc) return;
+    setLoading(true);
+    documentsApi
+      .get(id)
+      .then((d) => {
+        setDoc(d);
+        setCurrentDoc(d);
+      })
+      .catch(() => {
+        toast.error('Document not found');
+        navigate('/');
+      })
+      .finally(() => setLoading(false));
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load AI history
+  useEffect(() => {
+    if (!id) return;
+    aiApi
+      .getHistory(id)
+      .then(setAiInteractions)
+      .catch(() => {}); // non-critical
+  }, [id]);
+
+  const handleTitleSave = useCallback(
+    async (title: string) => {
+      if (!id || !doc) return;
+      try {
+        await documentsApi.update(id, { title });
+        setDoc((prev) => (prev ? { ...prev, title } : null));
+        updateDocumentTitle(id, title);
+      } catch {
+        toast.error('Failed to rename document');
+      }
+    },
+    [id, doc, updateDocumentTitle]
+  );
+
+  const handleAIAction = useCallback(
+    (feature: 'rewrite' | 'summarize' | 'translate', _text: string) => {
+      // Trigger the AI panel and select the feature
+      setAiPanelCollapsed(false);
+      toast.success(`${feature} feature activated in AI panel`);
+    },
+    []
+  );
+
+  const handleVersionRestore = useCallback(async () => {
+    if (!id) return;
+    try {
+      const updated = await documentsApi.get(id);
+      setDoc(updated);
+      setCurrentDoc(updated);
+    } catch {
+      toast.error('Failed to reload document after restore');
+    }
+  }, [id, setCurrentDoc]);
+
+  if (loading) {
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ background: 'var(--bg-app)' }}
+      >
+        <div className="flex flex-col items-center gap-3">
+          <Spinner size="lg" className="text-[#1a73e8]" />
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+            Loading document…
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!doc) return null;
+
+  return (
+    <div
+      className="flex flex-col h-screen overflow-hidden"
+      style={{ background: 'var(--bg-app)' }}
+    >
+      {/* ── Header ──────────────────────────────────────── */}
+      <header
+        className="flex items-center gap-2 px-4 h-12 flex-shrink-0 border-b z-20"
+        style={{
+          background: 'var(--bg-surface)',
+          borderColor: 'var(--border)',
+          boxShadow: 'var(--shadow-sm)',
+        }}
+      >
+        {/* Left: back + title */}
+        <div className="flex items-center gap-1 min-w-0 flex-1">
+          <Tooltip content="Back to dashboard">
+            <button
+              onClick={() => navigate('/')}
+              className="p-1.5 rounded-md hover:bg-[color:var(--border)] transition-colors flex-shrink-0"
+              aria-label="Back to dashboard"
+            >
+              <ArrowLeft className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+            </button>
+          </Tooltip>
+
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <Sparkles className="w-4 h-4 text-[#1a73e8]" />
+          </div>
+
+          <EditableTitle title={doc.title} onSave={handleTitleSave} />
+
+          <SaveStatusIndicator />
+        </div>
+
+        {/* Right: collaborators + actions */}
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {/* Collaborator presence */}
+          <PresenceBar collaborators={collaborators} />
+
+          {/* AI History */}
+          <Tooltip content="AI history">
+            <button
+              onClick={() => setAiHistoryOpen(true)}
+              className="p-1.5 rounded-md hover:bg-[color:var(--border)] transition-colors"
+              aria-label="AI interaction history"
+            >
+              <Sparkles className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+            </button>
+          </Tooltip>
+
+          {/* Version history */}
+          <Tooltip content="Version history">
+            <button
+              onClick={() => setVersionHistoryOpen(true)}
+              className="p-1.5 rounded-md hover:bg-[color:var(--border)] transition-colors"
+              aria-label="Version history"
+            >
+              <Clock className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+            </button>
+          </Tooltip>
+
+          {/* Share */}
+          <button
+            onClick={() => setShareOpen(true)}
+            className={clsx(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium',
+              'bg-[#1a73e8] text-white hover:bg-[#1557b0] transition-colors shadow-sm'
+            )}
+            aria-label="Share document"
+          >
+            <Share2 className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Share</span>
+          </button>
+
+          <ThemeToggle />
+
+          {/* User avatar */}
+          <Avatar name={user?.username ?? 'U'} size="xs" />
+        </div>
+      </header>
+
+      {/* ── Body: AI Panel + Editor ──────────────────── */}
+      <div className="flex flex-1 min-h-0 relative">
+        {/* AI Panel */}
+        <div className="relative flex-shrink-0">
+          <AIPanel
+            editor={editor}
+            docId={doc.id}
+            isCollapsed={aiPanelCollapsed}
+            onToggleCollapse={() => setAiPanelCollapsed((p) => !p)}
+            isPredicting={isPredicting}
+            interactions={aiInteractions}
+          />
+        </div>
+
+        {/* Editor area */}
+        <div className="flex-1 min-w-0 overflow-hidden">
+          <RichTextEditor
+            docId={doc.id}
+            initialContent={doc.content}
+            editable={true}
+            onContentChange={() => {}}
+            onAIAction={handleAIAction}
+          />
+        </div>
+      </div>
+
+      {/* ── Modals & Panels ──────────────────────────── */}
+      <ShareModal
+        isOpen={shareOpen}
+        onClose={() => setShareOpen(false)}
+        docId={doc.id}
+        ownerId={doc.owner_id}
+      />
+
+      <VersionHistoryPanel
+        isOpen={versionHistoryOpen}
+        onClose={() => setVersionHistoryOpen(false)}
+        docId={doc.id}
+        onRestore={handleVersionRestore}
+      />
+
+      <AIHistoryModal
+        isOpen={aiHistoryOpen}
+        onClose={() => setAiHistoryOpen(false)}
+        docId={doc.id}
+      />
+    </div>
+  );
+}
+
+export function EditorPage() {
+  return (
+    <EditorProvider>
+      <EditorPageInner />
+    </EditorProvider>
+  );
+}

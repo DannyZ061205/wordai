@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "wordai-frontend",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["-c", "export PATH=$HOME/.nvm/versions/node/v22.19.0/bin:$PATH && cd \"/Users/zichen.zhao/Documents/MBZUAI/Freshmen/Study/School Classes/Semester2/Software, Web & Mobile Engineering-003/Assignment/Assignment 2/wordai/frontend\" && npm run dev -- --port 5173"],
+      "port": 5173
+    }
+  ]
+}

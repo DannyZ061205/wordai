@@ -100,6 +100,13 @@ export const GhostTextExtension = Extension.create({
             }
 
             const pos = state.selection.$head.pos;
+
+            // Guard: position must be within the document (Yjs/collab can
+            // temporarily produce stale positions that exceed doc size)
+            if (pos < 0 || pos > state.doc.content.size) {
+              return DecorationSet.empty;
+            }
+
             const wrapper = document.createElement('span');
             wrapper.className = 'ghost-text-widget';
 
@@ -124,9 +131,13 @@ export const GhostTextExtension = Extension.create({
               wrapper.appendChild(hint);
             }
 
-            return DecorationSet.create(state.doc, [
-              Decoration.widget(pos, wrapper, { side: 1, key: 'ghost-text' }),
-            ]);
+            try {
+              return DecorationSet.create(state.doc, [
+                Decoration.widget(pos, wrapper, { side: 1, key: 'ghost-text' }),
+              ]);
+            } catch {
+              return DecorationSet.empty;
+            }
           },
         },
       }),

@@ -51,6 +51,7 @@ class JSONStore:
         self._shares: Dict[str, Dict] = {}         # share_id -> share dict
         self._share_links: Dict[str, Dict] = {}    # token -> link dict
         self._ai_history: Dict[str, Dict] = {}     # interaction_id -> interaction dict
+        self._ai_settings: Dict[str, Dict] = {}    # user_id -> ai provider settings
 
         self.load()
 
@@ -69,6 +70,7 @@ class JSONStore:
             _dump_json(self._path("shares"), self._shares)
             _dump_json(self._path("share_links"), self._share_links)
             _dump_json(self._path("ai_history"), self._ai_history)
+            _dump_json(self._path("ai_settings"), self._ai_settings)
 
     def load(self) -> None:
         with self._lock:
@@ -78,6 +80,7 @@ class JSONStore:
             self._shares = _load_json(self._path("shares")) or {}
             self._share_links = _load_json(self._path("share_links")) or {}
             self._ai_history = _load_json(self._path("ai_history")) or {}
+            self._ai_settings = _load_json(self._path("ai_settings")) or {}
 
     def _flush(self) -> None:
         """Write all collections to disk (called while lock is held)."""
@@ -87,6 +90,7 @@ class JSONStore:
         _dump_json(self._path("shares"), self._shares)
         _dump_json(self._path("share_links"), self._share_links)
         _dump_json(self._path("ai_history"), self._ai_history)
+        _dump_json(self._path("ai_settings"), self._ai_settings)
 
     # ------------------------------------------------------------------
     # Users
@@ -273,6 +277,27 @@ class JSONStore:
     def get_ai_history(self, doc_id: str) -> List[Dict]:
         interactions = [i for i in self._ai_history.values() if i.get("doc_id") == doc_id]
         return sorted(interactions, key=lambda i: i.get("created_at", ""), reverse=True)
+
+    # ------------------------------------------------------------------
+    # AI Settings (per-user provider configuration)
+    # ------------------------------------------------------------------
+
+    def get_ai_settings(self, user_id: str) -> Optional[Dict]:
+        return self._ai_settings.get(user_id)
+
+    def upsert_ai_settings(self, user_id: str, settings_data: Dict) -> Dict:
+        with self._lock:
+            self._ai_settings[user_id] = settings_data
+            self._flush()
+        return settings_data
+
+    def delete_ai_settings(self, user_id: str) -> bool:
+        with self._lock:
+            if user_id not in self._ai_settings:
+                return False
+            del self._ai_settings[user_id]
+            self._flush()
+        return True
 
 
 # ---------------------------------------------------------------------------

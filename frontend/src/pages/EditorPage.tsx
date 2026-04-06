@@ -10,6 +10,7 @@ import {
   Cloud,
   CloudOff,
   Loader2,
+  Settings,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { clsx } from 'clsx';
@@ -19,6 +20,8 @@ import { ShareModal } from '../components/editor/ShareModal';
 import { VersionHistoryPanel } from '../components/editor/VersionHistoryPanel';
 import { AIPanel } from '../components/ai/AIPanel';
 import { AIHistoryModal } from '../components/ai/AIHistoryModal';
+import { AISettingsModal } from '../components/ai/AISettingsModal';
+import { AISetupBanner } from '../components/ai/AISetupBanner';
 import { PresenceBar } from '../components/collaboration/PresenceBar';
 import { ThemeToggle } from '../components/shared/ThemeToggle';
 import { Tooltip } from '../components/shared/Tooltip';
@@ -26,6 +29,7 @@ import { Avatar } from '../components/shared/Avatar';
 import { Spinner } from '../components/shared/Spinner';
 import { documentsApi } from '../api/documents';
 import { aiApi } from '../api/ai';
+import { settingsApi } from '../api/settings';
 import { useDocumentStore } from '../store/document';
 import { useAuthStore } from '../store/auth';
 import { Document, AIInteraction, Collaborator } from '../types';
@@ -142,6 +146,10 @@ function EditorPageInner() {
   const [aiInteractions, setAiInteractions] = useState<AIInteraction[]>([]);
   const [isPredicting, setIsPredicting] = useState(false);
 
+  // AI settings state
+  const [aiSettingsOpen, setAiSettingsOpen] = useState(false);
+  const [aiConfigured, setAiConfigured] = useState<boolean | null>(null); // null = loading
+
   // Sync prefetched doc into store
   useEffect(() => {
     if (prefetchedDoc) setCurrentDoc(prefetchedDoc);
@@ -163,6 +171,11 @@ function EditorPageInner() {
       })
       .finally(() => setLoading(false));
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Check AI configuration on mount
+  useEffect(() => {
+    settingsApi.getAI().then((s) => setAiConfigured(s?.is_configured ?? false));
+  }, []);
 
   // Load AI history
   useEffect(() => {
@@ -287,6 +300,17 @@ function EditorPageInner() {
             </button>
           </Tooltip>
 
+          {/* AI Settings */}
+          <Tooltip content="AI settings">
+            <button
+              onClick={() => setAiSettingsOpen(true)}
+              className="p-1.5 rounded-md hover:bg-[color:var(--border)] transition-colors"
+              aria-label="AI settings"
+            >
+              <Settings className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+            </button>
+          </Tooltip>
+
           {/* Share */}
           <button
             onClick={() => setShareOpen(true)}
@@ -306,6 +330,11 @@ function EditorPageInner() {
           <Avatar name={user?.username ?? 'U'} size="xs" />
         </div>
       </header>
+
+      {/* ── AI Setup Banner (shown when AI is not configured) ── */}
+      {aiConfigured === false && (
+        <AISetupBanner onConfigureClick={() => setAiSettingsOpen(true)} />
+      )}
 
       {/* ── Body: AI Panel + Editor ──────────────────── */}
       <div className="flex flex-1 min-h-0 relative">
@@ -352,6 +381,12 @@ function EditorPageInner() {
         isOpen={aiHistoryOpen}
         onClose={() => setAiHistoryOpen(false)}
         docId={doc.id}
+      />
+
+      <AISettingsModal
+        isOpen={aiSettingsOpen}
+        onClose={() => setAiSettingsOpen(false)}
+        onSaved={() => setAiConfigured(true)}
       />
     </div>
   );

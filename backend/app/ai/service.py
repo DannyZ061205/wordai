@@ -49,34 +49,25 @@ _prompt_loader = PromptLoader()
 
 
 # ---------------------------------------------------------------------------
-# DeepSeek client
+# Per-user AI client resolution
 # ---------------------------------------------------------------------------
 
-class DeepSeekClient:
-    """Thin wrapper around the OpenAI-compatible DeepSeek API."""
+def _get_client_config(user_id: str) -> tuple[str, str, str]:
+    """Return (api_key, base_url, model) for the given user.
 
-    def __init__(self) -> None:
-        self._client: Optional[AsyncOpenAI] = None
-
-    @property
-    def client(self) -> AsyncOpenAI:
-        if self._client is None:
-            self._client = AsyncOpenAI(
-                api_key=settings.deepseek_api_key,
-                base_url="https://api.deepseek.com",
-            )
-        return self._client
-
-    async def stream(self, prompt: str):
-        """Return an async stream of chat completion chunks."""
-        return await self.client.chat.completions.create(
-            model="deepseek-chat",
-            messages=[{"role": "user", "content": prompt}],
-            stream=True,
+    Priority:
+      1. User's saved AI settings (provider + key they configured)
+      2. DEEPSEEK_API_KEY env var as system-wide fallback
+    """
+    user_settings = store.get_ai_settings(user_id)
+    if user_settings and user_settings.get("api_key"):
+        return (
+            user_settings["api_key"],
+            user_settings.get("base_url", "https://api.deepseek.com"),
+            user_settings.get("model", "deepseek-chat"),
         )
-
-
-_deepseek = DeepSeekClient()
+    # Fall back to env default
+    return settings.deepseek_api_key or "", "https://api.deepseek.com", "deepseek-chat"
 
 
 # ---------------------------------------------------------------------------
@@ -148,23 +139,38 @@ async def stream_ai_response(
         ...
         data: {"chunk": "", "done": true, "interaction_id": "..."}\\n\\n
     """
+    import json
+
+    # Resolve the user's configured provider (or env fallback)
+    api_key, base_url, model = _get_client_config(user_id)
+    if not api_key:
+        yield f"data: {json.dumps({'error': 'No AI API key configured. Open Settings → AI Configuration to add your key.', 'done': True, 'no_api_key': True})}\n\n"
+        return
+
     prompt = _build_prompt(request)
     full_response: list[str] = []
     interaction_id = str(uuid.uuid4())
 
     try:
-        stream = await _deepseek.stream(prompt)
+        client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+        stream = await client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+            stream=True,
+        )
         async for chunk in stream:
             delta = chunk.choices[0].delta.content or ""
             if delta:
                 full_response.append(delta)
-                # JSON-encode the chunk to escape special chars
-                import json
                 yield f"data: {json.dumps({'chunk': delta, 'done': False})}\n\n"
 
     except Exception as exc:
-        import json
-        yield f"data: {json.dumps({'error': str(exc), 'done': True})}\n\n"
+        msg = str(exc)
+        if "401" in msg or "authentication" in msg.lower():
+            msg = "Invalid API key. Open Settings → AI Configuration to fix it."
+        elif "404" in msg:
+            msg = f"Model '{model}' not found. Check your AI settings."
+        yield f"data: {json.dumps({'error': msg, 'done': True})}\n\n"
         return
 
     # Persist the interaction

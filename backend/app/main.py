@@ -54,11 +54,13 @@ def create_app() -> FastAPI:
     from app.documents.router import router as documents_router
     from app.ai.router import router as ai_router
     from app.websocket.router import router as ws_router
+    from app.settings.router import router as settings_router
 
     app.include_router(auth_router)
     app.include_router(documents_router)
     app.include_router(ai_router)
     app.include_router(ws_router)
+    app.include_router(settings_router)
 
     # Health check
     @app.get("/health", tags=["health"])

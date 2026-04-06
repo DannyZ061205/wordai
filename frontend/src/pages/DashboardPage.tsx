@@ -11,6 +11,7 @@ import {
   Clock,
   LogOut,
   Sparkles,
+  Settings,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import toast from 'react-hot-toast';
@@ -22,6 +23,8 @@ import { Dropdown, DropdownItem, DropdownSeparator } from '../components/shared/
 import { Modal } from '../components/shared/Modal';
 import { Input } from '../components/shared/Input';
 import { Spinner } from '../components/shared/Spinner';
+import { Tooltip } from '../components/shared/Tooltip';
+import { AISettingsModal } from '../components/ai/AISettingsModal';
 import { documentsApi } from '../api/documents';
 import { useDocumentStore } from '../store/document';
 import { useAuthStore } from '../store/auth';
@@ -156,6 +159,7 @@ export function DashboardPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [renaming, setRenaming] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [aiSettingsOpen, setAiSettingsOpen] = useState(false);
 
   useEffect(() => {
     fetchDocuments().catch(() => toast.error('Failed to load documents'));
@@ -237,6 +241,18 @@ export function DashboardPage() {
         {/* Right side */}
         <div className="flex items-center gap-2">
           <ThemeToggle />
+
+          {/* AI Settings gear */}
+          <Tooltip content="AI settings">
+            <button
+              onClick={() => setAiSettingsOpen(true)}
+              className="p-2 rounded-full hover:bg-[color:var(--border)] transition-colors"
+              aria-label="AI settings"
+            >
+              <Settings className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
+            </button>
+          </Tooltip>
+
           <Dropdown
             trigger={
               <button className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full hover:bg-[color:var(--border)] transition-colors">
@@ -426,6 +442,12 @@ export function DashboardPage() {
           </div>
         </div>
       </Modal>
+
+      {/* AI Settings modal */}
+      <AISettingsModal
+        isOpen={aiSettingsOpen}
+        onClose={() => setAiSettingsOpen(false)}
+      />
     </div>
   );
 }

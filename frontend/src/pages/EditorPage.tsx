@@ -138,7 +138,6 @@ function EditorPageInner() {
 
   const [doc, setDoc] = useState<Document | null>(prefetchedDoc);
   const [loading, setLoading] = useState(!prefetchedDoc);
-  const [editorKey, setEditorKey] = useState(0);
   const [aiPanelCollapsed, setAiPanelCollapsed] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
@@ -216,11 +215,13 @@ function EditorPageInner() {
       const updated = await documentsApi.get(id);
       setDoc(updated);
       setCurrentDoc(updated);
-      setEditorKey((k) => k + 1); // force remount so Yjs picks up restored content
+      // Set content directly on the live editor — goes through ProseMirror
+      // transactions so the Collaboration extension propagates to Y.Doc correctly.
+      editor?.commands.setContent(updated.content || '');
     } catch {
       toast.error('Failed to reload document after restore');
     }
-  }, [id, setCurrentDoc]);
+  }, [id, setCurrentDoc, editor]);
 
   if (loading) {
     return (
@@ -355,7 +356,6 @@ function EditorPageInner() {
         {/* Editor area */}
         <div className="flex-1 min-w-0 overflow-hidden">
           <RichTextEditor
-            key={editorKey}
             docId={doc.id}
             initialContent={doc.content}
             editable={true}

@@ -166,6 +166,10 @@ class ConnectionManager:
             for uid, meta in info.items()
         ]
 
+    def reset_yjs_state(self, doc_id: str) -> None:
+        """Clear the stored Yjs state for a document (e.g. after a version restore)."""
+        self.yjs_docs.pop(doc_id, None)
+
     async def _broadcast_presence(self, doc_id: str) -> None:
         presence = self.get_presence(doc_id)
         payload = json.dumps({"type": "awareness", "users": presence})

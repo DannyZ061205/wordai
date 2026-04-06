@@ -34,6 +34,7 @@ from app.documents.service import (
     update_share_role,
 )
 from app.middleware.auth import get_current_user, get_optional_user
+from app.websocket.manager import manager
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
 
@@ -92,7 +93,10 @@ async def restore_doc_version(
     version_id: str,
     current_user: dict = Depends(get_current_user),
 ):
-    return restore_version(doc_id, version_id, current_user["id"])
+    doc = restore_version(doc_id, version_id, current_user["id"])
+    # Clear stale Yjs state so reconnecting clients load the restored content
+    manager.reset_yjs_state(doc_id)
+    return doc
 
 
 # ---------------------------------------------------------------------------

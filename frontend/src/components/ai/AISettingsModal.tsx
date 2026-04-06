@@ -364,7 +364,9 @@ export function AISettingsModal({ isOpen, onClose, onSaved }: AISettingsModalPro
       return;
     }
 
-    setIsSaving(true);
+    // Only show the spinner if the request takes longer than 200 ms,
+    // preventing a jarring flash on fast (local) responses.
+    const loadingTimer = setTimeout(() => setIsSaving(true), 200);
     try {
       await settingsApi.updateAI({
         provider: selectedProviderId,
@@ -378,6 +380,7 @@ export function AISettingsModal({ isOpen, onClose, onSaved }: AISettingsModalPro
     } catch {
       toast.error('Failed to save AI settings');
     } finally {
+      clearTimeout(loadingTimer);
       setIsSaving(false);
     }
   };

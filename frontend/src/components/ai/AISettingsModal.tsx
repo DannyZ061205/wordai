@@ -16,6 +16,7 @@ import { clsx } from 'clsx';
 import toast from 'react-hot-toast';
 import { Modal } from '../shared/Modal';
 import { Button } from '../shared/Button';
+import { Select } from '../shared/Select';
 import { settingsApi, ProviderPreset, AISettingsUpdate } from '../../api/settings';
 
 interface AISettingsModalProps {
@@ -501,24 +502,14 @@ export function AISettingsModal({ isOpen, onClose, onSaved }: AISettingsModalPro
               Model
             </label>
             {selectedPreset && selectedPreset.models.length > 0 ? (
-              <select
+              <Select
                 value={model}
-                onChange={(e) => handleModelChange(e.target.value)}
-                className={clsx(
-                  'w-full px-3 py-2.5 text-sm rounded-md',
-                  'border transition-all duration-150 outline-none',
-                  'bg-[color:var(--bg-surface)] text-[color:var(--text-primary)]',
-                  'border-[color:var(--border)] focus:border-[#1a73e8] focus:ring-2 focus:ring-[#1a73e8]/20',
-                  'appearance-none cursor-pointer'
-                )}
-              >
-                {selectedPreset.models.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-                <option value="__custom__">Custom model…</option>
-              </select>
+                onChange={handleModelChange}
+                options={[
+                  ...selectedPreset.models.map((m) => ({ label: m, value: m })),
+                  { label: 'Custom model…', value: '__custom__' },
+                ]}
+              />
             ) : (
               <input
                 type="text"

@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { Modal } from '../shared/Modal';
 import { Button } from '../shared/Button';
 import { Input } from '../shared/Input';
+import { Select } from '../shared/Select';
 import { Avatar } from '../shared/Avatar';
 import { documentsApi } from '../../api/documents';
 import { Share, ShareLink } from '../../types';
@@ -152,14 +153,15 @@ export function ShareModal({ isOpen, onClose, docId, ownerId }: ShareModalProps)
 
               />
             </div>
-            <select
+            <Select
               value={inviteRole}
-              onChange={(e) => setInviteRole(e.target.value as 'editor' | 'viewer')}
-              className="px-3 py-2.5 text-sm rounded-md border bg-[color:var(--bg-surface)] text-[color:var(--text-primary)] border-[color:var(--border)] focus:outline-none focus:ring-2 focus:ring-[#1a73e8]"
-            >
-              <option value="editor">Editor</option>
-              <option value="viewer">Viewer</option>
-            </select>
+              onChange={(v) => setInviteRole(v as 'editor' | 'viewer')}
+              options={[
+                { label: 'Editor', value: 'editor' },
+                { label: 'Viewer', value: 'viewer' },
+              ]}
+              className="w-28"
+            />
             <Button
               onClick={handleInvite}
               loading={inviting}
@@ -207,14 +209,16 @@ export function ShareModal({ isOpen, onClose, docId, ownerId }: ShareModalProps)
                   </div>
                   {share.user_id !== ownerId && (
                     <div className="flex items-center gap-2">
-                      <select
+                      <Select
                         value={share.role}
-                        onChange={(e) => handleRoleChange(share.user_id, e.target.value as 'editor' | 'viewer')}
-                        className="text-xs px-2 py-1 rounded border bg-[color:var(--bg-surface)] text-[color:var(--text-primary)] border-[color:var(--border)] focus:outline-none"
-                      >
-                        <option value="editor">Editor</option>
-                        <option value="viewer">Viewer</option>
-                      </select>
+                        onChange={(v) => handleRoleChange(share.user_id, v as 'editor' | 'viewer')}
+                        options={[
+                          { label: 'Editor', value: 'editor' },
+                          { label: 'Viewer', value: 'viewer' },
+                        ]}
+                        size="sm"
+                        className="w-24"
+                      />
                       <button
                         onClick={() => handleRemoveShare(share.user_id, share.username)}
                         className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/20 text-[color:var(--text-secondary)] hover:text-[#d93025] transition-colors"
@@ -237,27 +241,24 @@ export function ShareModal({ isOpen, onClose, docId, ownerId }: ShareModalProps)
               Create share link
             </p>
             <div className="flex flex-wrap gap-2">
-              <select
+              <Select
                 value={linkRole}
-                onChange={(e) => setLinkRole(e.target.value as 'editor' | 'viewer')}
-                className="px-3 py-2 text-sm rounded-md border bg-[color:var(--bg-surface)] text-[color:var(--text-primary)] border-[color:var(--border)] focus:outline-none focus:ring-2 focus:ring-[#1a73e8]"
-              >
-                <option value="viewer">Can view</option>
-                <option value="editor">Can edit</option>
-              </select>
-              <select
-                value={linkExpiry ?? ''}
-                onChange={(e) =>
-                  setLinkExpiry(e.target.value ? Number(e.target.value) : undefined)
-                }
-                className="px-3 py-2 text-sm rounded-md border bg-[color:var(--bg-surface)] text-[color:var(--text-primary)] border-[color:var(--border)] focus:outline-none focus:ring-2 focus:ring-[#1a73e8]"
-              >
-                {EXPIRY_OPTIONS.map((opt) => (
-                  <option key={opt.label} value={opt.value ?? ''}>
-                    Expires: {opt.label}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => setLinkRole(v as 'editor' | 'viewer')}
+                options={[
+                  { label: 'Can view', value: 'viewer' },
+                  { label: 'Can edit', value: 'editor' },
+                ]}
+                className="w-32"
+              />
+              <Select
+                value={linkExpiry?.toString() ?? ''}
+                onChange={(v) => setLinkExpiry(v ? Number(v) : undefined)}
+                options={EXPIRY_OPTIONS.map((opt) => ({
+                  label: `Expires: ${opt.label}`,
+                  value: opt.value?.toString() ?? '',
+                }))}
+                className="w-40"
+              />
               <Button
                 onClick={handleCreateLink}
                 loading={creatingLink}

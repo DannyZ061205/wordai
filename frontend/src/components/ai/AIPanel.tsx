@@ -17,6 +17,7 @@ import { clsx } from 'clsx';
 import { FeatureButton } from './FeatureButton';
 import { AIResultCard } from './AIResultCard';
 import { Button } from '../shared/Button';
+import { Select } from '../shared/Select';
 import { useAI } from '../../hooks/useAI';
 import { AIFeature, AIInteraction } from '../../types';
 import { format } from 'date-fns';
@@ -315,15 +316,12 @@ export function AIPanel({
                               <label className="text-xs font-medium block mb-1" style={{ color: 'var(--text-secondary)' }}>
                                 Target language
                               </label>
-                              <select
+                              <Select
                                 value={translateLang}
-                                onChange={(e) => setTranslateLang(e.target.value)}
-                                className="w-full text-xs px-2 py-1.5 rounded border bg-[color:var(--bg-surface)] text-[color:var(--text-primary)] border-[color:var(--border)] focus:outline-none focus:ring-1 focus:ring-[#1a73e8]"
-                              >
-                                {['Spanish', 'French', 'German', 'Arabic', 'Chinese', 'Japanese', 'Portuguese', 'Russian', 'Hindi'].map(l => (
-                                  <option key={l}>{l}</option>
-                                ))}
-                              </select>
+                                onChange={setTranslateLang}
+                                options={['Spanish', 'French', 'German', 'Arabic', 'Chinese', 'Japanese', 'Portuguese', 'Russian', 'Hindi'].map(l => ({ label: l, value: l }))}
+                                size="sm"
+                              />
                             </div>
                           )}
 
@@ -332,15 +330,12 @@ export function AIPanel({
                               <label className="text-xs font-medium block mb-1" style={{ color: 'var(--text-secondary)' }}>
                                 Tone
                               </label>
-                              <select
+                              <Select
                                 value={rewriteTone}
-                                onChange={(e) => setRewriteTone(e.target.value)}
-                                className="w-full text-xs px-2 py-1.5 rounded border bg-[color:var(--bg-surface)] text-[color:var(--text-primary)] border-[color:var(--border)] focus:outline-none focus:ring-1 focus:ring-[#1a73e8]"
-                              >
-                                {['professional', 'casual', 'concise', 'academic', 'persuasive', 'creative'].map(t => (
-                                  <option key={t}>{t}</option>
-                                ))}
-                              </select>
+                                onChange={setRewriteTone}
+                                options={['professional', 'casual', 'concise', 'academic', 'persuasive', 'creative'].map(t => ({ label: t, value: t }))}
+                                size="sm"
+                              />
                             </div>
                           )}
 

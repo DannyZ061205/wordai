@@ -22,6 +22,7 @@ import { FloatingAIMenu } from './FloatingAIMenu';
 import { useAutoSave } from '../../hooks/useAutoSave';
 import { useGhostText } from '../../hooks/useGhostText';
 import { useAuthStore } from '../../store/auth';
+import { GhostTextExtension } from '../../extensions/GhostTextExtension';
 
 interface RichTextEditorProps {
   docId: string;
@@ -124,6 +125,7 @@ export function RichTextEditor({
     }),
     Image.configure({ inline: false }),
     Typography,
+    GhostTextExtension,
   ], []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const editor = useEditor({
@@ -146,11 +148,8 @@ export function RichTextEditor({
   const content = editor?.getHTML() ?? '';
   useAutoSave(docId, content);
 
-  // Ghost text
-  const { ghostText, isPredicting, acceptGhost, dismissGhost } = useGhostText(
-    editor,
-    docId
-  );
+  // Ghost text — rendered inline via ProseMirror decoration (GhostTextExtension)
+  const { hasGhostText, isPredicting, cancelStream } = useGhostText(editor, docId);
 
   return (
     <div className="flex flex-col h-full">
@@ -166,62 +165,40 @@ export function RichTextEditor({
               padding: '80px 64px',
             }}
           >
+            {/* Ghost text is rendered inline at the cursor via GhostTextExtension decoration */}
             <EditorContent editor={editor} />
 
-            {/* Ghost text overlay */}
-            {(ghostText || isPredicting) && (
-              <div
-                className="absolute pointer-events-none"
-                style={{
-                  left: '64px',
-                  right: '64px',
-                  bottom: '80px',
-                  color: 'var(--text-secondary)',
-                  fontSize: '1rem',
-                  lineHeight: '1.75',
-                  fontStyle: 'italic',
-                  opacity: 0.6,
-                }}
-              >
-                {isPredicting && !ghostText && (
-                  <span className="text-xs text-[#1a73e8] animate-pulse">
-                    AI predicting...
-                  </span>
-                )}
-                {ghostText && (
-                  <span>
-                    {ghostText}
-                    <span className="ml-2 text-xs not-italic opacity-70">
-                      [Tab to accept, Esc to dismiss]
-                    </span>
-                  </span>
-                )}
-              </div>
-            )}
-
-            {/* Character count */}
+            {/* Character count + ghost text status */}
             {editor && (
               <div
-                className="mt-6 pt-4 border-t text-xs select-none"
+                className="mt-6 pt-4 border-t text-xs select-none flex items-center gap-3"
                 style={{
                   borderColor: 'var(--border)',
                   color: 'var(--text-secondary)',
                 }}
               >
-                {editor.storage.characterCount?.characters() ?? 0} characters ·{' '}
-                {editor.storage.characterCount?.words() ?? 0} words
-                {(ghostText || isPredicting) && (
+                <span>
+                  {editor.storage.characterCount?.characters() ?? 0} characters ·{' '}
+                  {editor.storage.characterCount?.words() ?? 0} words
+                </span>
+                {isPredicting && !hasGhostText && (
+                  <span className="flex items-center gap-1 text-[#1a73e8] animate-pulse">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#1a73e8] inline-block" />
+                    AI writing suggestion…
+                  </span>
+                )}
+                {(hasGhostText || isPredicting) && (
                   <button
-                    onClick={dismissGhost}
-                    className="ml-4 text-[#1a73e8] hover:underline"
+                    onClick={cancelStream}
+                    className="text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)] hover:underline"
                   >
-                    Dismiss prediction
+                    Dismiss (Esc)
                   </button>
                 )}
-                {ghostText && (
+                {hasGhostText && (
                   <button
-                    onClick={acceptGhost}
-                    className="ml-2 text-[#1a73e8] hover:underline"
+                    onClick={() => editor.commands.acceptGhostText()}
+                    className="text-[#1a73e8] hover:underline font-medium"
                   >
                     Accept (Tab)
                   </button>

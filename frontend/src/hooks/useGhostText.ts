@@ -1,24 +1,30 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Editor } from '@tiptap/core';
 import { aiApi, parseSSEStream } from '../api/ai';
+import { ghostTextPluginKey } from '../extensions/GhostTextExtension';
 
-const GHOST_TRIGGER_DELAY_MS = 6000;
+// How long after the user stops typing before we request a suggestion
+const GHOST_TRIGGER_DELAY_MS = 1500;
+// Minimum characters before cursor before we bother predicting
+const MIN_CHARS_BEFORE = 20;
 
 interface UseGhostTextResult {
-  ghostText: string;
+  hasGhostText: boolean;
   isPredicting: boolean;
-  acceptGhost: () => void;
-  dismissGhost: () => void;
+  cancelStream: () => void;
 }
 
 export function useGhostText(
   editor: Editor | null,
   docId: string
 ): UseGhostTextResult {
-  const [ghostText, setGhostText] = useState('');
+  // Mirror plugin state into React so buttons/hints re-render correctly
+  const [hasGhostText, setHasGhostText] = useState(false);
   const [isPredicting, setIsPredicting] = useState(false);
+
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const activeStreamRef = useRef<boolean>(false);
+  const activeStreamRef = useRef(false);
+  const accumulatedRef = useRef('');
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -28,6 +34,18 @@ export function useGhostText(
     };
   }, []);
 
+  // Keep React state in sync with ProseMirror plugin state
+  useEffect(() => {
+    if (!editor) return;
+    const syncState = () => {
+      const ghost = ghostTextPluginKey.getState(editor.state);
+      setHasGhostText(!!ghost?.text);
+      setIsPredicting(!!ghost?.isPredicting);
+    };
+    editor.on('transaction', syncState);
+    return () => { editor.off('transaction', syncState); };
+  }, [editor]);
+
   const clearTimer = useCallback(() => {
     if (timerRef.current) {
       clearTimeout(timerRef.current);
@@ -35,35 +53,27 @@ export function useGhostText(
     }
   }, []);
 
-  const dismissGhost = useCallback(() => {
-    setGhostText('');
-    setIsPredicting(false);
+  const cancelStream = useCallback(() => {
     activeStreamRef.current = false;
+    accumulatedRef.current = '';
     clearTimer();
-  }, [clearTimer]);
-
-  const acceptGhost = useCallback(() => {
-    if (!editor || !ghostText) return;
-    editor.commands.insertContent(ghostText);
-    dismissGhost();
-  }, [editor, ghostText, dismissGhost]);
+    editor?.commands.clearGhostText();
+  }, [editor, clearTimer]);
 
   const triggerAutocomplete = useCallback(async () => {
     if (!editor || !docId || activeStreamRef.current) return;
 
     const { state } = editor;
-    const { selection } = state;
-    const pos = selection.$head.pos;
-
+    const pos = state.selection.$head.pos;
     const textBefore = state.doc.textBetween(0, pos, '\n', '\n');
     const textAfter = state.doc.textBetween(pos, state.doc.content.size, '\n', '\n');
 
-    // Only trigger if there's meaningful content before cursor
-    if (textBefore.trim().length < 10) return;
+    if (textBefore.trim().length < MIN_CHARS_BEFORE) return;
 
     activeStreamRef.current = true;
-    setIsPredicting(true);
-    setGhostText('');
+    accumulatedRef.current = '';
+    // Show the thinking indicator
+    editor.commands.setGhostText('', true);
 
     try {
       const stream = await aiApi.stream(docId, {
@@ -79,70 +89,44 @@ export function useGhostText(
         if (!isMountedRef.current || !activeStreamRef.current) break;
         if (chunk.done) break;
         if (chunk.chunk) {
-          setGhostText((prev) => prev + chunk.chunk);
+          accumulatedRef.current += chunk.chunk;
+          // Stream each chunk into the inline decoration
+          editor.commands.setGhostText(accumulatedRef.current, true);
         }
       }
 
-      if (isMountedRef.current) {
-        setIsPredicting(false);
+      if (isMountedRef.current && activeStreamRef.current) {
+        // Mark streaming as complete (removes thinking indicator)
+        editor.commands.setGhostText(accumulatedRef.current, false);
       }
     } catch {
       if (isMountedRef.current) {
-        setIsPredicting(false);
-        setGhostText('');
+        editor.commands.clearGhostText();
       }
+    } finally {
       activeStreamRef.current = false;
     }
   }, [editor, docId]);
 
-  // Watch editor updates and schedule autocomplete
+  // On every editor update: cancel the current stream and schedule a new one
   useEffect(() => {
     if (!editor) return;
 
     const handleUpdate = () => {
-      // Dismiss any existing ghost text on typing
-      if (ghostText || isPredicting) {
-        dismissGhost();
+      // If a stream is active, cancel it (user is typing — suggestion is stale)
+      if (activeStreamRef.current) {
+        cancelStream();
       }
-
       clearTimer();
-
-      timerRef.current = setTimeout(() => {
-        triggerAutocomplete();
-      }, GHOST_TRIGGER_DELAY_MS);
+      timerRef.current = setTimeout(triggerAutocomplete, GHOST_TRIGGER_DELAY_MS);
     };
 
     editor.on('update', handleUpdate);
-
     return () => {
       editor.off('update', handleUpdate);
       clearTimer();
     };
-  }, [editor, ghostText, isPredicting, dismissGhost, clearTimer, triggerAutocomplete]);
+  }, [editor, cancelStream, clearTimer, triggerAutocomplete]);
 
-  // Keyboard shortcuts: Tab to accept, Escape to dismiss
-  useEffect(() => {
-    if (!editor) return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (!ghostText && !isPredicting) return;
-
-      if (event.key === 'Tab' && ghostText) {
-        event.preventDefault();
-        acceptGhost();
-      } else if (event.key === 'Escape') {
-        event.preventDefault();
-        dismissGhost();
-      }
-    };
-
-    const editorEl = editor.view.dom;
-    editorEl.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      editorEl.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [editor, ghostText, isPredicting, acceptGhost, dismissGhost]);
-
-  return { ghostText, isPredicting, acceptGhost, dismissGhost };
+  return { hasGhostText, isPredicting, cancelStream };
 }

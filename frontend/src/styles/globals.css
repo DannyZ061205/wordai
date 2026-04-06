@@ -319,6 +319,61 @@ body {
   user-select: none;
 }
 
+/* ─── Ghost Text (inline AI autocomplete) ───────────────────────── */
+
+/* Wrapper — renders inline right at the cursor position */
+.ghost-text-widget {
+  display: inline;
+  pointer-events: none;
+  user-select: none;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+/* The suggested text itself — greyed out, same font as document */
+.ghost-text-content {
+  color: var(--text-secondary);
+  opacity: 0.55;
+}
+
+/* Small "Tab" badge shown after the suggestion text */
+.ghost-text-hint {
+  display: inline-block;
+  margin-left: 5px;
+  padding: 1px 5px;
+  background: rgba(26, 115, 232, 0.12);
+  color: #1a73e8;
+  border: 1px solid rgba(26, 115, 232, 0.35);
+  border-radius: 4px;
+  font-size: 10px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 1.5;
+  vertical-align: baseline;
+}
+
+.dark .ghost-text-hint {
+  background: rgba(26, 115, 232, 0.18);
+  border-color: rgba(26, 115, 232, 0.4);
+}
+
+/* Three-dot thinking animation shown while the AI is fetching */
+.ghost-text-thinking {
+  color: #1a73e8;
+  opacity: 0.4;
+  font-size: 0.45em;
+  letter-spacing: 3px;
+  vertical-align: middle;
+  animation: ghost-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes ghost-pulse {
+  0%, 100% { opacity: 0.25; }
+  50%       { opacity: 0.75; }
+}
+
 /* ─── No scrollbar ───────────────────────────────────────────────── */
 .no-scrollbar {
   -ms-overflow-style: none;

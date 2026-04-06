@@ -319,6 +319,15 @@ body {
   user-select: none;
 }
 
+/* ─── No scrollbar ───────────────────────────────────────────────── */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* ─── Utility Classes ────────────────────────────────────────────── */
 .surface {
   background-color: var(--bg-surface);

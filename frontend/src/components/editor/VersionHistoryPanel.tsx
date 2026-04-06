@@ -126,7 +126,7 @@ export function VersionHistoryPanel({
         <div className="flex flex-1 overflow-hidden">
           {/* Versions list */}
           <div
-            className="w-48 border-r flex-shrink-0 overflow-y-auto"
+            className="w-48 border-r flex-shrink-0 overflow-y-auto no-scrollbar"
             style={{ borderColor: 'var(--border)' }}
           >
             {loading ? (

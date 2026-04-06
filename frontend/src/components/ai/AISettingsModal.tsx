@@ -209,6 +209,7 @@ export function AISettingsModal({ isOpen, onClose, onSaved }: AISettingsModalPro
   const [keyStatus, setKeyStatus] = useState<KeyStatus>('idle');
   const [keyStatusMessage, setKeyStatusMessage] = useState('');
   const [initialConfigured, setInitialConfigured] = useState(false);
+  const [initialProviderId, setInitialProviderId] = useState<string>('');
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Ref to always have latest values in the async debounce callback
@@ -276,11 +277,21 @@ export function AISettingsModal({ isOpen, onClose, onSaved }: AISettingsModalPro
         setModel(preset.default_model || (preset.models[0] ?? ''));
         setCustomModel('');
       }
-      // Reset key status so the debounce effect re-fires with the new provider
-      setKeyStatus(apiKey.trim() ? 'testing' : 'idle');
-      setKeyStatusMessage('');
+      // When switching to a different provider the stored key doesn't apply
+      if (providerId !== initialProviderId) {
+        setApiKey('');
+        setInitialConfigured(false);
+        setKeyStatus('idle');
+        setKeyStatusMessage('');
+      } else {
+        // Back to the originally configured provider — restore saved-key state
+        setApiKey('');
+        setInitialConfigured(true);
+        setKeyStatus('ok');
+        setKeyStatusMessage('API key is configured');
+      }
     },
-    [providers, apiKey]
+    [providers, initialProviderId]
   );
 
   // Load current settings and providers on open
@@ -305,6 +316,7 @@ export function AISettingsModal({ isOpen, onClose, onSaved }: AISettingsModalPro
         if (currentSettings && currentSettings.is_configured) {
           const providerId = currentSettings.provider || 'deepseek';
           setSelectedProviderId(providerId);
+          setInitialProviderId(providerId);
           setBaseUrl(currentSettings.base_url);
           setApiKey(''); // key stays blank; user re-enters to change it
           setInitialConfigured(true);

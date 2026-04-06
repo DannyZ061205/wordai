@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, Clock, RotateCcw, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { useEditor, EditorContent } from '@tiptap/react';
@@ -22,6 +22,14 @@ function VersionPreview({ content }: { content: string }) {
     content,
     editable: false,
   });
+
+  const prevContent = useRef(content);
+  useEffect(() => {
+    if (editor && content !== prevContent.current) {
+      prevContent.current = content;
+      editor.commands.setContent(content);
+    }
+  }, [editor, content]);
 
   return (
     <div className="prose prose-sm max-w-none text-[color:var(--text-primary)]">

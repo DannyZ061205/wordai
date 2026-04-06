@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Check, X, Edit3, Copy, Square, Undo2 } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Check, X, Edit3, Copy, Square, Undo2, ListChecks } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Button } from '../shared/Button';
 import toast from 'react-hot-toast';
@@ -14,6 +14,31 @@ interface AIResultCardProps {
   onUndo?: () => void;
 }
 
+type SplitType = 'paragraph' | 'newline' | 'sentence';
+
+function splitIntoSegments(text: string): { segments: string[]; splitType: SplitType } {
+  // Priority 1: double newlines (paragraphs)
+  if (/\n{2,}/.test(text)) {
+    const segs = text.split(/\n{2,}/).filter((s) => s.trim().length > 0);
+    if (segs.length > 1) return { segments: segs, splitType: 'paragraph' };
+  }
+  // Priority 2: single newlines
+  if (/\n/.test(text)) {
+    const segs = text.split(/\n/).filter((s) => s.trim().length > 0);
+    if (segs.length > 1) return { segments: segs, splitType: 'newline' };
+  }
+  // Priority 3: sentences
+  const segs = text.split(/(?<=[.!?])\s+/).filter((s) => s.trim().length > 0);
+  if (segs.length > 1) return { segments: segs, splitType: 'sentence' };
+  return { segments: [text], splitType: 'sentence' };
+}
+
+function joinSegments(selected: string[], splitType: SplitType): string {
+  if (splitType === 'paragraph') return selected.join('\n\n');
+  if (splitType === 'newline') return selected.join('\n');
+  return selected.join(' ');
+}
+
 export function AIResultCard({
   result,
   loading,
@@ -23,8 +48,12 @@ export function AIResultCard({
   onCancel,
   onUndo,
 }: AIResultCardProps) {
-  const [mode, setMode] = useState<'preview' | 'edit'>('preview');
+  const [mode, setMode] = useState<'preview' | 'edit' | 'partial'>('preview');
   const [editedText, setEditedText] = useState('');
+  const [checkedSegments, setCheckedSegments] = useState<Set<number>>(new Set());
+
+  const { segments, splitType } = useMemo(() => splitIntoSegments(result || ''), [result]);
+  const hasMultipleSegments = segments.length > 1;
 
   const handleAccept = () => {
     const textToInsert = mode === 'edit' ? editedText : result;
@@ -38,10 +67,37 @@ export function AIResultCard({
     setMode('edit');
   };
 
+  const handleEnterPartial = () => {
+    // Start with all segments checked
+    setCheckedSegments(new Set(segments.map((_, i) => i)));
+    setMode('partial');
+  };
+
+  const handleAcceptPartial = () => {
+    const selected = segments.filter((_, i) => checkedSegments.has(i));
+    onAccept(joinSegments(selected, splitType));
+    setMode('preview');
+    setCheckedSegments(new Set());
+  };
+
   const handleCopy = () => {
     navigator.clipboard.writeText(result);
     toast.success('Copied to clipboard');
   };
+
+  const toggleSegment = (idx: number) => {
+    setCheckedSegments((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  };
+
+  const handleSelectAll = () => setCheckedSegments(new Set(segments.map((_, i) => i)));
+  const handleSelectNone = () => setCheckedSegments(new Set());
+
+  const selectedCount = checkedSegments.size;
 
   return (
     <div
@@ -52,11 +108,11 @@ export function AIResultCard({
       )}
     >
       {/* Result header */}
-      <div
-        className="flex items-center justify-between px-3 py-2 border-b border-[#1a73e8]/20"
-      >
+      <div className="flex items-center justify-between px-3 py-2 border-b border-[#1a73e8]/20">
         <span className="text-xs font-semibold text-[#1a73e8] uppercase tracking-wide">
-          AI Result
+          {mode === 'partial'
+            ? `${selectedCount} of ${segments.length} selected`
+            : 'AI Result'}
         </span>
         <div className="flex items-center gap-1">
           {loading && onCancel && (
@@ -69,7 +125,7 @@ export function AIResultCard({
               Stop
             </button>
           )}
-          {!loading && result && (
+          {!loading && result && mode !== 'partial' && (
             <button
               onClick={handleCopy}
               className="p-1 rounded hover:bg-[color:var(--border)] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)] transition-colors"
@@ -78,8 +134,27 @@ export function AIResultCard({
               <Copy className="w-3.5 h-3.5" />
             </button>
           )}
+          {mode === 'partial' && (
+            <div className="flex items-center gap-1 mr-1">
+              <button
+                onClick={handleSelectAll}
+                className="text-xs text-[#1a73e8] hover:underline font-medium"
+                aria-label="Select all segments"
+              >
+                All
+              </button>
+              <span className="text-[color:var(--text-secondary)] text-xs">/</span>
+              <button
+                onClick={handleSelectNone}
+                className="text-xs text-[#1a73e8] hover:underline font-medium"
+                aria-label="Select no segments"
+              >
+                None
+              </button>
+            </div>
+          )}
           <button
-            onClick={() => { onClear(); setMode('preview'); setEditedText(''); }}
+            onClick={() => { onClear(); setMode('preview'); setEditedText(''); setCheckedSegments(new Set()); }}
             className="p-1 rounded hover:bg-[color:var(--border)] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)] transition-colors"
             aria-label="Clear result"
           >
@@ -90,7 +165,7 @@ export function AIResultCard({
 
       {/* Content */}
       <div className="p-3">
-        {mode === 'preview' ? (
+        {mode === 'preview' && (
           <div
             className={clsx(
               'text-sm leading-relaxed min-h-[80px] max-h-[300px] overflow-y-auto',
@@ -109,7 +184,9 @@ export function AIResultCard({
               </>
             )}
           </div>
-        ) : (
+        )}
+
+        {mode === 'edit' && (
           <textarea
             value={editedText}
             onChange={(e) => setEditedText(e.target.value)}
@@ -123,14 +200,54 @@ export function AIResultCard({
             autoFocus
           />
         )}
+
+        {mode === 'partial' && (
+          <ul className="max-h-[300px] overflow-y-auto space-y-1.5 pr-0.5">
+            {segments.map((seg, idx) => {
+              const checked = checkedSegments.has(idx);
+              return (
+                <li key={idx}>
+                  <label className="flex items-start gap-2 cursor-pointer group select-none">
+                    {/* Custom checkbox */}
+                    <span
+                      className={clsx(
+                        'mt-0.5 flex-shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-colors',
+                        checked
+                          ? 'bg-[#1a73e8] border-[#1a73e8]'
+                          : 'border-[color:var(--text-secondary)] group-hover:border-[#1a73e8]'
+                      )}
+                    >
+                      {checked && <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />}
+                    </span>
+                    <input
+                      type="checkbox"
+                      className="sr-only"
+                      checked={checked}
+                      onChange={() => toggleSegment(idx)}
+                      aria-label={`Segment ${idx + 1}`}
+                    />
+                    <span
+                      className={clsx(
+                        'text-sm leading-relaxed transition-all',
+                        checked
+                          ? 'text-[color:var(--text-primary)]'
+                          : 'line-through opacity-50 text-[color:var(--text-secondary)]'
+                      )}
+                    >
+                      {seg}
+                    </span>
+                  </label>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
 
       {/* Actions */}
       {!loading && result && (
-        <div
-          className="flex items-center gap-2 px-3 py-2.5 border-t border-[#1a73e8]/20 flex-wrap"
-        >
-          {mode === 'preview' ? (
+        <div className="flex items-center gap-2 px-3 py-2.5 border-t border-[#1a73e8]/20 flex-wrap">
+          {mode === 'preview' && (
             <>
               <Button
                 size="sm"
@@ -147,6 +264,16 @@ export function AIResultCard({
               >
                 Edit first
               </Button>
+              {hasMultipleSegments && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={handleEnterPartial}
+                  icon={<ListChecks className="w-3.5 h-3.5" />}
+                >
+                  Select parts
+                </Button>
+              )}
               <Button
                 size="sm"
                 variant="ghost"
@@ -156,7 +283,9 @@ export function AIResultCard({
                 Reject
               </Button>
             </>
-          ) : (
+          )}
+
+          {mode === 'edit' && (
             <>
               <Button
                 size="sm"
@@ -171,6 +300,26 @@ export function AIResultCard({
                 onClick={() => setMode('preview')}
               >
                 Cancel edit
+              </Button>
+            </>
+          )}
+
+          {mode === 'partial' && (
+            <>
+              <Button
+                size="sm"
+                onClick={handleAcceptPartial}
+                disabled={selectedCount === 0}
+                icon={<Check className="w-3.5 h-3.5" />}
+              >
+                {selectedCount === segments.length ? 'Accept all' : `Accept ${selectedCount} part${selectedCount !== 1 ? 's' : ''}`}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setMode('preview')}
+              >
+                Back
               </Button>
             </>
           )}

@@ -126,4 +126,137 @@ describe('AIResultCard', () => {
       expect(screen.queryByText(/suggestion applied/i)).not.toBeInTheDocument();
     });
   });
+
+  describe('partial acceptance — visibility', () => {
+    it('does not show Select parts button for single-sentence result', () => {
+      render(<AIResultCard {...baseProps} result="Only one sentence here." />);
+      expect(screen.queryByRole('button', { name: /select parts/i })).not.toBeInTheDocument();
+    });
+
+    it('shows Select parts button when result has multiple paragraphs', () => {
+      render(
+        <AIResultCard
+          {...baseProps}
+          result={"Paragraph one.\n\nParagraph two.\n\nParagraph three."}
+        />
+      );
+      expect(screen.getByRole('button', { name: /select parts/i })).toBeInTheDocument();
+    });
+
+    it('shows Select parts button when result has multiple sentences', () => {
+      render(
+        <AIResultCard
+          {...baseProps}
+          result="First sentence. Second sentence. Third sentence."
+        />
+      );
+      expect(screen.getByRole('button', { name: /select parts/i })).toBeInTheDocument();
+    });
+
+    it('does not show Select parts button while loading', () => {
+      render(
+        <AIResultCard
+          {...baseProps}
+          loading
+          result={"Paragraph one.\n\nParagraph two."}
+        />
+      );
+      expect(screen.queryByRole('button', { name: /select parts/i })).not.toBeInTheDocument();
+    });
+  });
+
+  describe('partial acceptance — navigation', () => {
+    const multiResult = "First sentence. Second sentence. Third sentence.";
+
+    it('enters partial mode when Select parts is clicked', async () => {
+      render(<AIResultCard {...baseProps} result={multiResult} />);
+      await userEvent.click(screen.getByRole('button', { name: /select parts/i }));
+      expect(screen.getByRole('button', { name: /accept/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /back/i })).toBeInTheDocument();
+    });
+
+    it('starts with all segments checked in partial mode', async () => {
+      render(<AIResultCard {...baseProps} result={multiResult} />);
+      await userEvent.click(screen.getByRole('button', { name: /select parts/i }));
+      // Header shows "3 of 3 selected"
+      expect(screen.getByText(/3 of 3 selected/i)).toBeInTheDocument();
+    });
+
+    it('Back button returns to preview mode', async () => {
+      render(<AIResultCard {...baseProps} result={multiResult} />);
+      await userEvent.click(screen.getByRole('button', { name: /select parts/i }));
+      await userEvent.click(screen.getByRole('button', { name: /back/i }));
+      expect(screen.queryByRole('button', { name: /back/i })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /select parts/i })).toBeInTheDocument();
+    });
+  });
+
+  describe('partial acceptance — accepting', () => {
+    const paraResult = "Alpha paragraph.\n\nBeta paragraph.\n\nGamma paragraph.";
+
+    it('deselecting a segment updates the selected count', async () => {
+      render(<AIResultCard {...baseProps} result={paraResult} />);
+      await userEvent.click(screen.getByRole('button', { name: /select parts/i }));
+      // Deselect segment 2
+      await userEvent.click(screen.getByRole('checkbox', { name: /segment 2/i }));
+      expect(screen.getByText(/2 of 3 selected/i)).toBeInTheDocument();
+    });
+
+    it('calls onAccept with only selected paragraphs joined by double newline', async () => {
+      const onAccept = vi.fn();
+      render(<AIResultCard {...baseProps} result={paraResult} onAccept={onAccept} />);
+      await userEvent.click(screen.getByRole('button', { name: /select parts/i }));
+      // Deselect segment 2
+      await userEvent.click(screen.getByRole('checkbox', { name: /segment 2/i }));
+      await userEvent.click(screen.getByRole('button', { name: /accept 2 parts/i }));
+      expect(onAccept).toHaveBeenCalledWith('Alpha paragraph.\n\nGamma paragraph.');
+    });
+
+    it('calls onAccept with sentence segments joined by space', async () => {
+      const onAccept = vi.fn();
+      const sentenceResult = "First sentence. Second sentence. Third sentence.";
+      render(<AIResultCard {...baseProps} result={sentenceResult} onAccept={onAccept} />);
+      await userEvent.click(screen.getByRole('button', { name: /select parts/i }));
+      // Deselect segment 2 (second sentence)
+      await userEvent.click(screen.getByRole('checkbox', { name: /segment 2/i }));
+      await userEvent.click(screen.getByRole('button', { name: /accept 2 parts/i }));
+      expect(onAccept).toHaveBeenCalledWith('First sentence. Third sentence.');
+    });
+
+    it('shows "Accept all" when all segments are selected', async () => {
+      render(<AIResultCard {...baseProps} result={paraResult} />);
+      await userEvent.click(screen.getByRole('button', { name: /select parts/i }));
+      expect(screen.getByRole('button', { name: /accept all/i })).toBeInTheDocument();
+    });
+
+    it('accept button is disabled when zero segments are selected', async () => {
+      render(<AIResultCard {...baseProps} result={paraResult} />);
+      await userEvent.click(screen.getByRole('button', { name: /select parts/i }));
+      await userEvent.click(screen.getByRole('button', { name: /select no segments/i }));
+      const acceptBtn = screen.getByRole('button', { name: /accept/i });
+      expect(acceptBtn).toBeDisabled();
+    });
+
+    it('None control deselects all segments', async () => {
+      render(<AIResultCard {...baseProps} result={paraResult} />);
+      await userEvent.click(screen.getByRole('button', { name: /select parts/i }));
+      await userEvent.click(screen.getByRole('button', { name: /select no segments/i }));
+      expect(screen.getByText(/0 of 3 selected/i)).toBeInTheDocument();
+    });
+
+    it('All control re-selects all segments after deselection', async () => {
+      render(<AIResultCard {...baseProps} result={paraResult} />);
+      await userEvent.click(screen.getByRole('button', { name: /select parts/i }));
+      await userEvent.click(screen.getByRole('button', { name: /select no segments/i }));
+      await userEvent.click(screen.getByRole('button', { name: /select all segments/i }));
+      expect(screen.getByText(/3 of 3 selected/i)).toBeInTheDocument();
+    });
+
+    it('single segment result: onAccept called with full text', async () => {
+      const onAccept = vi.fn();
+      render(<AIResultCard {...baseProps} result="Just one sentence." onAccept={onAccept} />);
+      await userEvent.click(screen.getByRole('button', { name: /^accept$/i }));
+      expect(onAccept).toHaveBeenCalledWith('Just one sentence.');
+    });
+  });
 });

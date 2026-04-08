@@ -278,42 +278,47 @@ function EditorPageInner() {
         </div>
 
         {/* Right: collaborators + actions */}
-        <div className="flex items-center gap-1.5 flex-shrink-0">
+        <div className="flex items-center gap-2 flex-shrink-0">
           {/* Collaborator presence */}
           <PresenceBar collaborators={collaborators} />
 
-          {/* AI History */}
-          <Tooltip content="AI history">
-            <button
-              onClick={() => setAiHistoryOpen(true)}
-              className="p-1.5 rounded-md hover:bg-[color:var(--border)] transition-colors"
-              aria-label="AI interaction history"
-            >
-              <Sparkles className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
-            </button>
-          </Tooltip>
+          {/* Grouped icon actions */}
+          <div
+            className="flex items-center gap-0.5 px-1 py-1 rounded-lg"
+            style={{ background: 'var(--border)' }}
+          >
+            <Tooltip content="AI history">
+              <button
+                onClick={() => setAiHistoryOpen(true)}
+                className="p-1.5 rounded-md hover:bg-[color:var(--bg-surface)] transition-colors"
+                aria-label="AI interaction history"
+              >
+                <Sparkles className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+              </button>
+            </Tooltip>
 
-          {/* Version history */}
-          <Tooltip content="Version history">
-            <button
-              onClick={() => setVersionHistoryOpen(true)}
-              className="p-1.5 rounded-md hover:bg-[color:var(--border)] transition-colors"
-              aria-label="Version history"
-            >
-              <Clock className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
-            </button>
-          </Tooltip>
+            <Tooltip content="Version history">
+              <button
+                onClick={() => setVersionHistoryOpen(true)}
+                className="p-1.5 rounded-md hover:bg-[color:var(--bg-surface)] transition-colors"
+                aria-label="Version history"
+              >
+                <Clock className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+              </button>
+            </Tooltip>
 
-          {/* AI Settings */}
-          <Tooltip content="AI settings">
-            <button
-              onClick={() => setAiSettingsOpen(true)}
-              className="p-1.5 rounded-md hover:bg-[color:var(--border)] transition-colors"
-              aria-label="AI settings"
-            >
-              <Settings className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
-            </button>
-          </Tooltip>
+            <Tooltip content="AI settings">
+              <button
+                onClick={() => setAiSettingsOpen(true)}
+                className="p-1.5 rounded-md hover:bg-[color:var(--bg-surface)] transition-colors"
+                aria-label="AI settings"
+              >
+                <Settings className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+              </button>
+            </Tooltip>
+
+            <ThemeToggle />
+          </div>
 
           {/* Share */}
           <button
@@ -327,8 +332,6 @@ function EditorPageInner() {
             <Share2 className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Share</span>
           </button>
-
-          <ThemeToggle />
 
           {/* User avatar */}
           <Avatar name={user?.username ?? 'U'} size="xs" />

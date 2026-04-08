@@ -28,6 +28,7 @@ interface RichTextEditorProps {
   docId: string;
   initialContent: string;
   editable?: boolean;
+  shareToken?: string;
   onContentChange?: (content: string) => void;
   onAIAction?: (feature: 'rewrite' | 'summarize' | 'translate', text: string) => void;
 }
@@ -49,6 +50,7 @@ export function RichTextEditor({
   docId,
   initialContent,
   editable = true,
+  shareToken,
   onContentChange,
   onAIAction,
 }: RichTextEditorProps) {
@@ -64,7 +66,6 @@ export function RichTextEditor({
   }
   if (!providerRef.current && editable && docId) {
     const token = localStorage.getItem('access_token');
-    const shareToken = new URLSearchParams(window.location.search).get('share_token');
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${wsProtocol}//${window.location.hostname}:8000`;
     const params = new URLSearchParams();

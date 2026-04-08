@@ -13,12 +13,15 @@ import Highlight from '@tiptap/extension-highlight';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import Link2 from '@tiptap/extension-link';
+import { EditorProvider } from '../components/editor/EditorContext';
+import { RichTextEditor } from '../components/editor/RichTextEditor';
 
 interface SharedDoc extends Document {
   role: string;
 }
 
-function SharedEditor({ content, editable }: { content: string; editable: boolean }) {
+// Fallback read-only viewer for viewers (no Yjs needed)
+function ReadOnlyViewer({ content }: { content: string }) {
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -30,7 +33,7 @@ function SharedEditor({ content, editable }: { content: string; editable: boolea
       Link2.configure({ openOnClick: true }),
     ],
     content,
-    editable,
+    editable: false,
   });
 
   return (
@@ -65,7 +68,7 @@ export function SharedDocPage() {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--bg-app)' }}>
-      {/* Header banner */}
+      {/* Header */}
       <header
         className="sticky top-0 z-20 border-b px-6 py-3 flex items-center justify-between"
         style={{
@@ -96,7 +99,7 @@ export function SharedDocPage() {
                 <Eye className="w-3.5 h-3.5" />
               )}
               <span>
-                Viewing "{doc.title}" — {doc.role === 'editor' ? 'you can edit' : 'view only'}
+                "{doc.title}" — {doc.role === 'editor' ? 'editing via shared link' : 'view only'}
               </span>
             </div>
           </div>
@@ -139,10 +142,21 @@ export function SharedDocPage() {
             </Link>
           </div>
         ) : doc ? (
-          <SharedEditor
-            content={doc.content}
-            editable={doc.role === 'editor'}
-          />
+          doc.role === 'editor' ? (
+            // Editor role: use full Yjs-backed RichTextEditor so changes sync in real time
+            <EditorProvider>
+              <RichTextEditor
+                docId={doc.id}
+                initialContent={doc.content}
+                editable={true}
+                shareToken={token}
+                onContentChange={() => {}}
+              />
+            </EditorProvider>
+          ) : (
+            // Viewer role: simple read-only view, no WS needed
+            <ReadOnlyViewer content={doc.content} />
+          )
         ) : null}
       </main>
     </div>

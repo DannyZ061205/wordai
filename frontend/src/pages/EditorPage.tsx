@@ -145,7 +145,7 @@ function EditorPageInner() {
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
   const [aiInteractions, setAiInteractions] = useState<AIInteraction[]>([]);
   const [isPredicting, setIsPredicting] = useState(false);
-
+  const [editorKey, setEditorKey] = useState(0);
   // AI settings state
   const [aiSettingsOpen, setAiSettingsOpen] = useState(false);
   const [aiConfigured, setAiConfigured] = useState<boolean | null>(null); // null = loading
@@ -215,13 +215,14 @@ function EditorPageInner() {
       const updated = await documentsApi.get(id);
       setDoc(updated);
       setCurrentDoc(updated);
-      // Set content directly on the live editor — goes through ProseMirror
-      // transactions so the Collaboration extension propagates to Y.Doc correctly.
-      editor?.commands.setContent(updated.content || '');
+      // Force full remount of RichTextEditor — tears down old Yjs provider
+      // and reconnects with the restored content from scratch
+      setEditorKey((k) => k + 1);
+      toast.success('Document restored');
     } catch {
       toast.error('Failed to reload document after restore');
     }
-  }, [id, setCurrentDoc, editor]);
+  }, [id, setCurrentDoc]);
 
   if (loading) {
     return (
@@ -356,6 +357,7 @@ function EditorPageInner() {
         {/* Editor area */}
         <div className="flex-1 min-w-0 overflow-hidden">
           <RichTextEditor
+            key={editorKey}
             docId={doc.id}
             initialContent={doc.content}
             editable={true}

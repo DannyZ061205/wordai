@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query, WebSocket, WebSocketDisconnect, status
+from typing import Optional
+
+from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 
 from app.auth.service import decode_token
-from app.documents.service import _get_user_role
+from app.documents.service import _get_user_role, get_doc_via_share_link
 from app.storage.json_store import store
 from app.websocket.manager import manager
 
@@ -14,59 +16,56 @@ router = APIRouter(tags=["websocket"])
 async def websocket_endpoint(
     websocket: WebSocket,
     doc_id: str,
-    token: str = Query(..., description="JWT access token"),
+    token: Optional[str] = Query(None),
+    share_token: Optional[str] = Query(None),
 ):
-    """
-    WebSocket endpoint for real-time Yjs CRDT collaboration.
+    user_id: str | None = None
+    username: str = "Guest"
 
-    Clients must pass a valid JWT access token as a query parameter because
-    the WebSocket handshake does not support custom HTTP headers in browser
-    environments.
+    # --- Auth via JWT ---
+    if token:
+        try:
+            payload = decode_token(token)
+            if payload.get("type", "access") == "access":
+                uid = payload.get("sub", "")
+                user = store.get_user(uid)
+                if user:
+                    user_id = uid
+                    username = user["username"]
+        except Exception:
+            pass
 
-    Message protocol:
-    - Binary frames: raw Yjs update bytes (forwarded to all other clients)
-    - Text frames: ignored (future: could handle JSON commands)
-    """
-    # 1. Validate token
-    try:
-        payload = decode_token(token)
-    except HTTPException:
+    # --- Auth via share link token ---
+    if not user_id and share_token:
+        try:
+            # Reuse the existing share link lookup — it validates expiry etc.
+            doc = get_doc_via_share_link(share_token, None)
+            if doc and doc["id"] == doc_id:
+                # Give them a stable guest ID derived from share token
+                user_id = f"guest_{share_token[:8]}"
+                username = "Guest"
+        except Exception:
+            pass
+
+    if not user_id:
         await websocket.close(code=4001)
         return
 
-    if payload.get("type", "access") != "access":
-        await websocket.close(code=4001)
-        return
-
-    user_id: str = payload.get("sub", "")
-    user = store.get_user(user_id)
-    if not user:
-        await websocket.close(code=4001)
-        return
-
-    # 2. Check document access
+    # Check document access (owners/editors/viewers all get read, guests via share link too)
     role = _get_user_role(doc_id, user_id)
-    if role is None:
+    if role is None and not share_token:
         await websocket.close(code=4003)
         return
 
-    # 3. Connect
-    await manager.connect(websocket, doc_id, user_id, user["username"])
+    await manager.connect(websocket, doc_id, user_id, username)
 
     try:
         while True:
-            # Receive the next frame.  We accept both bytes (Yjs updates)
-            # and text (future control messages).
             message = await websocket.receive()
-
-            # Client closed the connection — exit cleanly.
             if message["type"] == "websocket.disconnect":
                 break
-
             if "bytes" in message and message["bytes"] is not None:
                 await manager.handle_yjs_message(doc_id, user_id, message["bytes"])
-            # Text frames are currently ignored; extend here as needed.
-
     except WebSocketDisconnect:
         pass
     finally:

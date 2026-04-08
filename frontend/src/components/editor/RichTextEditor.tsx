@@ -64,9 +64,13 @@ export function RichTextEditor({
   }
   if (!providerRef.current && editable && docId) {
     const token = localStorage.getItem('access_token');
+    const shareToken = new URLSearchParams(window.location.search).get('share_token');
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${wsProtocol}//${window.location.hostname}:8000`;
-    const roomName = `ws/${docId}${token ? `?token=${token}` : ''}`;
+    const params = new URLSearchParams();
+    if (token) params.set('token', token);
+    if (shareToken) params.set('share_token', shareToken);
+    const roomName = `ws/${docId}?${params.toString()}`;
     providerRef.current = new WebsocketProvider(wsUrl, roomName, ydocRef.current, {
       connect: true,
     });

@@ -288,10 +288,12 @@ export function DashboardPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
-              My Documents
+              {user?.username ? `${user.username}'s workspace` : 'My Documents'}
             </h1>
             <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-              {documents.length} document{documents.length !== 1 ? 's' : ''}
+              {documents.length === 0
+                ? 'No documents yet — create one to get started'
+                : `${documents.length} document${documents.length !== 1 ? 's' : ''}`}
             </p>
           </div>
           <Button
@@ -370,16 +372,30 @@ export function DashboardPage() {
                 }}
               />
             ))}
-
-            {/* Empty state */}
+            {/* Empty state — no search results */}
             {!isLoadingDocuments && filtered.length === 0 && search && (
               <div className="col-span-full flex flex-col items-center justify-center py-16 gap-2">
                 <Search className="w-10 h-10" style={{ color: 'var(--border)' }} />
                 <p className="text-base font-medium" style={{ color: 'var(--text-primary)' }}>
-                  No documents found
+                  No documents match "{search}"
                 </p>
                 <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                   Try a different search term
+                </p>
+              </div>
+            )}
+
+            {/* Empty state — no documents at all */}
+            {!isLoadingDocuments && documents.length === 0 && !search && (
+              <div className="col-span-full flex flex-col items-center justify-center py-20 gap-3">
+                <div className="w-16 h-16 rounded-2xl bg-[#e8f0fe] dark:bg-[#1a3a5c] flex items-center justify-center">
+                  <FileText className="w-8 h-8 text-[#1a73e8]" />
+                </div>
+                <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  Start your first document
+                </p>
+                <p className="text-sm text-center max-w-xs" style={{ color: 'var(--text-secondary)' }}>
+                  Click "New document" above or use the card on the left to begin writing with AI assistance.
                 </p>
               </div>
             )}

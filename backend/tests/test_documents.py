@@ -176,6 +176,63 @@ def test_viewer_cannot_edit(
     assert resp.status_code == 403
 
 
+def test_editor_share_link_can_update_document_content(
+    client: TestClient, test_user: dict, test_doc: dict
+):
+    link_resp = client.post(
+        f"/api/documents/{test_doc['id']}/share-links",
+        json={"role": "editor"},
+        headers=test_user["headers"],
+    )
+    assert link_resp.status_code == 201
+    token = link_resp.json()["token"]
+
+    resp = client.patch(
+        f"/api/documents/{test_doc['id']}?share_token={token}",
+        json={"content": "<p>Edited from shared link</p>"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["content"] == "<p>Edited from shared link</p>"
+    assert data["role"] == "editor"
+
+
+def test_viewer_share_link_cannot_update_document_content(
+    client: TestClient, test_user: dict, test_doc: dict
+):
+    link_resp = client.post(
+        f"/api/documents/{test_doc['id']}/share-links",
+        json={"role": "viewer"},
+        headers=test_user["headers"],
+    )
+    assert link_resp.status_code == 201
+    token = link_resp.json()["token"]
+
+    resp = client.patch(
+        f"/api/documents/{test_doc['id']}?share_token={token}",
+        json={"content": "<p>Blocked</p>"},
+    )
+    assert resp.status_code == 403
+
+
+def test_editor_share_link_cannot_rename_document(
+    client: TestClient, test_user: dict, test_doc: dict
+):
+    link_resp = client.post(
+        f"/api/documents/{test_doc['id']}/share-links",
+        json={"role": "editor"},
+        headers=test_user["headers"],
+    )
+    assert link_resp.status_code == 201
+    token = link_resp.json()["token"]
+
+    resp = client.patch(
+        f"/api/documents/{test_doc['id']}?share_token={token}",
+        json={"title": "Renamed from link"},
+    )
+    assert resp.status_code == 403
+
+
 def test_list_shares(
     client: TestClient, test_user: dict, test_user2: dict, test_doc: dict
 ):

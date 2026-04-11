@@ -59,6 +59,47 @@ def _build_doc_response(doc: Dict, user_id: str) -> Dict:
     }
 
 
+def _build_shared_doc_response(doc: Dict, role: Literal["editor", "viewer"]) -> Dict:
+    owner = store.get_user(doc["owner_id"])
+    return {
+        **doc,
+        "owner_username": owner["username"] if owner else "unknown",
+        "role": role,
+    }
+
+
+def _get_valid_share_link(
+    token: str,
+    doc_id: Optional[str] = None,
+) -> tuple[Dict, Dict]:
+    link = store.get_share_link(token)
+    if not link:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Share link not found or revoked",
+        )
+
+    if link.get("expires_at"):
+        expires_at = datetime.fromisoformat(link["expires_at"])
+        if datetime.now(timezone.utc) > expires_at:
+            raise HTTPException(
+                status_code=status.HTTP_410_GONE,
+                detail="Share link has expired",
+            )
+
+    if doc_id and link["doc_id"] != doc_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Share link does not match this document",
+        )
+
+    doc = store.get_document(link["doc_id"])
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+
+    return link, doc
+
+
 def _next_version_number(doc_id: str) -> int:
     versions = store.get_versions(doc_id)
     if not versions:
@@ -134,6 +175,29 @@ def update_document(doc_id: str, user_id: str, updates: Dict) -> Dict:
     if "content" in filtered:
         _create_version(doc_id, filtered["content"], user_id)
     return _build_doc_response(doc, user_id)
+
+
+def update_document_via_share_link(doc_id: str, token: str, updates: Dict) -> Dict:
+    link, _existing_doc = _get_valid_share_link(token, doc_id)
+    if link["role"] != "editor":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This share link does not allow editing",
+        )
+
+    filtered = {k: v for k, v in updates.items() if v is not None}
+    if any(key != "content" for key in filtered):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Share-link editors can only update document content",
+        )
+
+    doc = store.update_document(doc_id, filtered)
+    if doc is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+    if "content" in filtered:
+        _create_version(doc_id, filtered["content"], f"guest_{token[:8]}")
+    return _build_shared_doc_response(doc, link["role"])
 
 
 def delete_document(doc_id: str, user_id: str) -> None:
@@ -275,26 +339,8 @@ def get_share_links(doc_id: str, user_id: str) -> List[Dict]:
 
 
 def get_doc_via_share_link(token: str, requesting_user: Optional[Dict]) -> Dict:
-    link = store.get_share_link(token)
-    if not link:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Share link not found or revoked")
-
-    # Check expiry
-    if link.get("expires_at"):
-        expires_at = datetime.fromisoformat(link["expires_at"])
-        if datetime.now(timezone.utc) > expires_at:
-            raise HTTPException(status_code=status.HTTP_410_GONE, detail="Share link has expired")
-
-    doc = store.get_document(link["doc_id"])
-    if not doc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
-
-    owner = store.get_user(doc["owner_id"])
-    return {
-        **doc,
-        "owner_username": owner["username"] if owner else "unknown",
-        "role": link["role"],
-    }
+    link, doc = _get_valid_share_link(token)
+    return _build_shared_doc_response(doc, link["role"])
 
 
 def revoke_share_link(doc_id: str, token: str, user_id: str) -> None:

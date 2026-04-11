@@ -4,11 +4,14 @@ import { useDocumentStore } from '../store/document';
 
 const DEBOUNCE_MS = 1500;
 
-export function useAutoSave(docId: string | null, content: string) {
+export function useAutoSave(docId: string | null, content: string, shareToken?: string) {
   const setSaveStatus = useDocumentStore((s) => s.setSaveStatus);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedContent = useRef<string>(content);
+  const latestContentRef = useRef<string>(content);
   const isMounted = useRef(true);
+
+  latestContentRef.current = content;
 
   useEffect(() => {
     isMounted.current = true;
@@ -24,7 +27,11 @@ export function useAutoSave(docId: string | null, content: string) {
 
       setSaveStatus('saving');
       try {
-        await documentsApi.update(docId, { content: text });
+        if (shareToken) {
+          await documentsApi.updateViaLink(docId, shareToken, { content: text });
+        } else {
+          await documentsApi.update(docId, { content: text });
+        }
         if (isMounted.current) {
           lastSavedContent.current = text;
           setSaveStatus('saved');
@@ -35,7 +42,34 @@ export function useAutoSave(docId: string | null, content: string) {
         }
       }
     },
-    [docId, setSaveStatus]
+    [docId, setSaveStatus, shareToken]
+  );
+
+  const flushPendingSave = useCallback(
+    (text: string) => {
+      if (!docId || text === lastSavedContent.current) return;
+
+      const url = new URL(`/api/documents/${docId}`, window.location.origin);
+      if (shareToken) {
+        url.searchParams.set('share_token', shareToken);
+      }
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      const token = localStorage.getItem('access_token');
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      void fetch(url.toString(), {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ content: text }),
+        keepalive: true,
+      }).catch(() => undefined);
+    },
+    [docId, shareToken]
   );
 
   useEffect(() => {
@@ -61,10 +95,18 @@ export function useAutoSave(docId: string | null, content: string) {
 
   // Flush on unmount
   useEffect(() => {
+    const handlePageHide = () => {
+      flushPendingSave(latestContentRef.current);
+    };
+
+    window.addEventListener('pagehide', handlePageHide);
+
     return () => {
+      window.removeEventListener('pagehide', handlePageHide);
       if (timerRef.current) {
         clearTimeout(timerRef.current);
       }
+      flushPendingSave(latestContentRef.current);
     };
-  }, []);
+  }, [flushPendingSave]);
 }

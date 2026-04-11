@@ -95,7 +95,14 @@ function clearAuthAndRedirect() {
   localStorage.removeItem('access_token');
   localStorage.removeItem('refresh_token');
   localStorage.removeItem('user');
-  window.location.href = '/login';
+
+  const pathname = window.location.pathname;
+  const isPublicPath =
+    pathname.startsWith('/shared/') || pathname === '/login' || pathname === '/register';
+
+  if (!isPublicPath) {
+    window.location.href = '/login';
+  }
 }
 
 export default api;

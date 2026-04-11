@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.documents.models import (
     DocumentCreate,
@@ -31,6 +31,7 @@ from app.documents.service import (
     revoke_share_link,
     share_document,
     update_document,
+    update_document_via_share_link,
     update_share_role,
 )
 from app.middleware.auth import get_current_user, get_optional_user
@@ -68,9 +69,17 @@ async def get_doc(doc_id: str, current_user: dict = Depends(get_current_user)):
 async def update_doc(
     doc_id: str,
     body: DocumentUpdate,
-    current_user: dict = Depends(get_current_user),
+    share_token: Optional[str] = Query(None),
+    current_user: Optional[dict] = Depends(get_optional_user),
 ):
-    return update_document(doc_id, current_user["id"], body.model_dump())
+    if current_user:
+        return update_document(doc_id, current_user["id"], body.model_dump())
+    if share_token:
+        return update_document_via_share_link(doc_id, share_token, body.model_dump())
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Authentication or share link required",
+    )
 
 
 @router.delete("/{doc_id}", status_code=204)

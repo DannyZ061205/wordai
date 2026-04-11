@@ -48,6 +48,31 @@ class PromptLoader:
 _prompt_loader = PromptLoader()
 
 
+class _DeepSeekClient:
+    """Compatibility wrapper for DeepSeek streaming calls used in tests."""
+
+    def __init__(self) -> None:
+        self.api_key = ""
+        self.base_url = "https://api.deepseek.com"
+        self.model = "deepseek-chat"
+
+    def configure(self, *, api_key: str, base_url: str, model: str) -> None:
+        self.api_key = api_key
+        self.base_url = base_url
+        self.model = model
+
+    async def stream(self, prompt: str):
+        openai_client = AsyncOpenAI(api_key=self.api_key, base_url=self.base_url)
+        return await openai_client.chat.completions.create(
+            model=self.model,
+            messages=[{"role": "user", "content": prompt}],
+            stream=True,
+        )
+
+
+_deepseek = _DeepSeekClient()
+
+
 # ---------------------------------------------------------------------------
 # Per-user AI client resolution
 # ---------------------------------------------------------------------------
@@ -166,6 +191,18 @@ async def stream_ai_response(
                     if text:
                         full_response.append(text)
                         yield f"data: {json.dumps({'chunk': text, 'done': False})}\n\n"
+        elif provider == "deepseek":
+            _deepseek.configure(
+                api_key=api_key,
+                base_url=base_url,
+                model=model,
+            )
+            stream = await _deepseek.stream(prompt)
+            async for chunk in stream:
+                delta = chunk.choices[0].delta.content or ""
+                if delta:
+                    full_response.append(delta)
+                    yield f"data: {json.dumps({'chunk': delta, 'done': False})}\n\n"
         else:
             openai_client = AsyncOpenAI(api_key=api_key, base_url=base_url)
             stream = await openai_client.chat.completions.create(

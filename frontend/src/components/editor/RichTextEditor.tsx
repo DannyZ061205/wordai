@@ -56,6 +56,19 @@ export function RichTextEditor({
 }: RichTextEditorProps) {
   const { setEditor } = useEditorContext();
   const user = useAuthStore((s) => s.user);
+  const collaborationUser = user
+    ? {
+        name: user.username,
+        color: getColor(user.id),
+        userId: user.id,
+      }
+    : shareToken
+      ? {
+          name: 'Guest',
+          color: getColor(`guest_${shareToken.slice(0, 8)}`),
+          userId: `guest_${shareToken.slice(0, 8)}`,
+        }
+      : null;
 
   // Create Y.Doc and WebsocketProvider once — stable refs, never recreated
   const ydocRef = useRef<Y.Doc | null>(null);
@@ -80,13 +93,9 @@ export function RichTextEditor({
   // Set awareness after provider exists
   useEffect(() => {
     const provider = providerRef.current;
-    if (!provider || !user) return;
-    provider.awareness.setLocalStateField('user', {
-      name: user.username,
-      color: getColor(user.id),
-      userId: user.id,
-    });
-  }, [user]);
+    if (!provider || !collaborationUser) return;
+    provider.awareness.setLocalStateField('user', collaborationUser);
+  }, [collaborationUser]);
 
   // Cleanup on unmount only
   useEffect(() => {
@@ -108,8 +117,8 @@ export function RichTextEditor({
             ? [CollaborationCursor.configure({
                 provider: providerRef.current,
                 user: {
-                  name: user?.username ?? 'Anonymous',
-                  color: user ? getColor(user.id) : '#999',
+                  name: collaborationUser?.name ?? 'Anonymous',
+                  color: collaborationUser?.color ?? '#999',
                 },
               })]
             : []),
@@ -151,7 +160,7 @@ export function RichTextEditor({
 
   // Auto-save
   const content = editor?.getHTML() ?? '';
-  useAutoSave(docId, content);
+  useAutoSave(docId, content, shareToken);
 
   // Ghost text — rendered inline via ProseMirror decoration (GhostTextExtension)
   const { hasGhostText, isPredicting, cancelStream } = useGhostText(editor, docId);

@@ -31,6 +31,17 @@ export const documentsApi = {
     return response.data;
   },
 
+  async updateViaLink(
+    id: string,
+    shareToken: string,
+    data: UpdateDocumentData
+  ): Promise<Document & { role: string }> {
+    const response = await api.patch<Document & { role: string }>(`/documents/${id}`, data, {
+      params: { share_token: shareToken },
+    });
+    return response.data;
+  },
+
   async delete(id: string): Promise<void> {
     await api.delete(`/documents/${id}`);
   },

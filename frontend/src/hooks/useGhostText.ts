@@ -11,7 +11,8 @@ const MIN_CHARS_BEFORE = 20;
 interface UseGhostTextResult {
   hasGhostText: boolean;
   isPredicting: boolean;
-  cancelStream: () => void;
+  ghostText: string;
+  cancelStream: (suppressUntilTyping?: boolean) => void;
 }
 
 export function useGhostText(
@@ -21,10 +22,13 @@ export function useGhostText(
   // Mirror plugin state into React so buttons/hints re-render correctly
   const [hasGhostText, setHasGhostText] = useState(false);
   const [isPredicting, setIsPredicting] = useState(false);
+  const [ghostText, setGhostText] = useState('');
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeStreamRef = useRef(false);
   const accumulatedRef = useRef('');
+  const dismissedRef = useRef(false);
+  const lastDocTextRef = useRef('');
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -41,6 +45,7 @@ export function useGhostText(
       const ghost = ghostTextPluginKey.getState(editor.state);
       setHasGhostText(!!ghost?.text);
       setIsPredicting(!!ghost?.isPredicting);
+      setGhostText(ghost?.text ?? '');
     };
     editor.on('transaction', syncState);
     return () => { editor.off('transaction', syncState); };
@@ -53,10 +58,13 @@ export function useGhostText(
     }
   }, []);
 
-  const cancelStream = useCallback(() => {
+  const cancelStream = useCallback((suppressUntilTyping = true) => {
     activeStreamRef.current = false;
     accumulatedRef.current = '';
     clearTimer();
+    if (suppressUntilTyping) {
+      dismissedRef.current = true;
+    }
     editor?.commands.clearGhostText();
   }, [editor, clearTimer]);
 
@@ -64,9 +72,13 @@ export function useGhostText(
     if (!editor || !docId || activeStreamRef.current) return;
 
     const { state } = editor;
+    const { from, to } = state.selection;
+    if (from !== to) return;
+
     const pos = state.selection.$head.pos;
     const textBefore = state.doc.textBetween(0, pos, '\n', '\n');
     const textAfter = state.doc.textBetween(pos, state.doc.content.size, '\n', '\n');
+    if (textAfter.trim().length > 0) return;
 
     if (textBefore.trim().length < MIN_CHARS_BEFORE) return;
 
@@ -120,10 +132,38 @@ export function useGhostText(
     if (!editor) return;
 
     const handleUpdate = () => {
-      // If a stream is active, cancel it (user is typing — suggestion is stale)
-      if (activeStreamRef.current) {
-        cancelStream();
+      const { state } = editor;
+      const { from, to } = state.selection;
+      const hasSelection = from !== to;
+      const pos = state.selection.$head.pos;
+
+      const docText = state.doc.textBetween(0, state.doc.content.size, '\n', '\n');
+      const userTyped = docText !== lastDocTextRef.current;
+      lastDocTextRef.current = docText;
+
+      if (userTyped) {
+        dismissedRef.current = false;
       }
+
+      if (hasSelection) {
+        cancelStream(false);
+        return;
+      }
+
+      if (dismissedRef.current) {
+        return;
+      }
+
+      const textAfter = state.doc.textBetween(pos, state.doc.content.size, '\n', '\n');
+      if (textAfter.trim().length > 0) {
+        cancelStream(false);
+        return;
+      }
+
+      if (activeStreamRef.current) {
+        cancelStream(false);
+      }
+
       clearTimer();
       timerRef.current = setTimeout(triggerAutocomplete, GHOST_TRIGGER_DELAY_MS);
     };
@@ -135,5 +175,23 @@ export function useGhostText(
     };
   }, [editor, cancelStream, clearTimer, triggerAutocomplete]);
 
-  return { hasGhostText, isPredicting, cancelStream };
+  useEffect(() => {
+    if (!editor) return;
+
+    const handleSelectionUpdate = () => {
+      const ghost = ghostTextPluginKey.getState(editor.state);
+      const { from, to } = editor.state.selection;
+
+      if ((from !== to || !editor.state.selection.empty) && (ghost?.text || ghost?.isPredicting)) {
+        cancelStream(false);
+      }
+    };
+
+    editor.on('selectionUpdate', handleSelectionUpdate);
+    return () => {
+      editor.off('selectionUpdate', handleSelectionUpdate);
+    };
+  }, [editor, cancelStream]);
+
+  return { hasGhostText, isPredicting, ghostText, cancelStream };
 }

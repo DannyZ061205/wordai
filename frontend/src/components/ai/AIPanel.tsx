@@ -130,6 +130,7 @@ export function AIPanel({
 }: AIPanelProps) {
   const [tab, setTab] = useState<Tab>('tools');
   const [activeFeature, setActiveFeature] = useState<AIFeature | null>(null);
+  const [submittedText, setSubmittedText] = useState('');
   const [customPrompt, setCustomPrompt] = useState('');
   const [translateLang, setTranslateLang] = useState('Spanish');
   const [rewriteTone, setRewriteTone] = useState('professional');
@@ -154,6 +155,7 @@ export function AIPanel({
     }
 
     setActiveFeature(featureId);
+    setSubmittedText(selectedText);
     clear();
 
     const options: Record<string, unknown> = {};
@@ -180,6 +182,7 @@ export function AIPanel({
     }
     await accept(text);
     clear();
+    setSubmittedText('');
     setJustAccepted(true);
     toast.success('AI suggestion accepted');
   };
@@ -195,6 +198,7 @@ export function AIPanel({
   const handleReject = async () => {
     await reject();
     setActiveFeature(null);
+    setSubmittedText('');
     setJustAccepted(false);
     toast('Suggestion rejected', { icon: '👎' });
   };
@@ -385,10 +389,12 @@ export function AIPanel({
                     <AIResultCard
                       result={result}
                       loading={loading}
+                      feature={activeFeature}
+                      originalText={submittedText}
                       onAccept={handleAccept}
                       onReject={handleReject}
-                      onClear={() => { clear(); setActiveFeature(null); setJustAccepted(false); }}
-                      onCancel={loading ? () => { clear(); toast('Generation stopped', { icon: '⏹' }); } : undefined}
+                      onClear={() => { clear(); setActiveFeature(null); setSubmittedText(''); setJustAccepted(false); }}
+                      onCancel={loading ? () => { clear(); setSubmittedText(''); toast('Generation stopped', { icon: '⏹' }); } : undefined}
                       onUndo={justAccepted ? handleUndo : undefined}
                     />
                   </div>

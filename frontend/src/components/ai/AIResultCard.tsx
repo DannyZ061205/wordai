@@ -7,6 +7,8 @@ import toast from 'react-hot-toast';
 interface AIResultCardProps {
   result: string;
   loading: boolean;
+  originalText?: string;
+  feature?: string | null;
   onAccept: (text: string) => void;
   onReject: () => void;
   onClear: () => void;
@@ -15,6 +17,23 @@ interface AIResultCardProps {
 }
 
 type SplitType = 'paragraph' | 'newline' | 'sentence';
+
+function getHeaderTitle(feature?: string | null): string {
+  switch (feature) {
+    case 'rewrite':
+      return 'Rewrite suggestion';
+    case 'summarize':
+      return 'Summary suggestion';
+    case 'translate':
+      return 'Translation suggestion';
+    case 'expand':
+      return 'Expansion suggestion';
+    case 'grammar':
+      return 'Grammar suggestion';
+    default:
+      return 'AI Result';
+  }
+}
 
 function splitIntoSegments(text: string): { segments: string[]; splitType: SplitType } {
   // Priority 1: double newlines (paragraphs)
@@ -42,6 +61,8 @@ function joinSegments(selected: string[], splitType: SplitType): string {
 export function AIResultCard({
   result,
   loading,
+  originalText,
+  feature,
   onAccept,
   onReject,
   onClear,
@@ -53,6 +74,12 @@ export function AIResultCard({
   const [checkedSegments, setCheckedSegments] = useState<Set<number>>(new Set());
 
   const { segments, splitType } = useMemo(() => splitIntoSegments(result || ''), [result]);
+
+  const showComparison = Boolean(
+    originalText?.trim() &&
+      ['rewrite', 'summarize', 'translate', 'expand', 'grammar'].includes(feature ?? '')
+  );
+  const headerTitle = mode === 'partial' ? `${checkedSegments.size} of ${segments.length} selected` : getHeaderTitle(feature);
   const hasMultipleSegments = segments.length > 1;
 
   const handleAccept = () => {
@@ -110,9 +137,7 @@ export function AIResultCard({
       {/* Result header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-[#1a73e8]/20">
         <span className="text-xs font-semibold text-[#1a73e8] uppercase tracking-wide">
-          {mode === 'partial'
-            ? `${selectedCount} of ${segments.length} selected`
-            : 'AI Result'}
+          {headerTitle}
         </span>
         <div className="flex items-center gap-1">
           {loading && onCancel && (
@@ -166,22 +191,54 @@ export function AIResultCard({
       {/* Content */}
       <div className="p-3">
         {mode === 'preview' && (
-          <div
-            className={clsx(
-              'text-sm leading-relaxed min-h-[80px] max-h-[300px] overflow-y-auto',
-              'text-[color:var(--text-primary)] whitespace-pre-wrap',
-              loading && !result && 'text-[color:var(--text-secondary)] italic'
-            )}
-          >
-            {loading && !result ? (
-              <span className="animate-pulse">AI is thinking...</span>
+          <div className="space-y-3">
+            {showComparison ? (
+              <div className="space-y-2">
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] p-3 max-h-[160px] overflow-y-auto">
+                  <div className="text-[var(--text-secondary)] text-[10px] uppercase tracking-[0.2em] mb-2">
+                    Original
+                  </div>
+                  <div className="text-sm leading-6 text-[color:var(--text-primary)] whitespace-pre-wrap">
+                    {originalText}
+                  </div>
+                </div>
+                <div className="rounded-xl border border-[#1a73e8]/25 bg-[#eff6ff] dark:bg-[#10243a] p-3 max-h-[180px] overflow-y-auto shadow-sm">
+                  <div className="text-[var(--text-secondary)] text-[10px] uppercase tracking-[0.2em] mb-2">
+                    Suggestion
+                  </div>
+                  <div className="text-sm leading-6 text-[color:var(--text-primary)] dark:text-[var(--text-primary)] whitespace-pre-wrap">
+                    {loading && !result ? (
+                      <span className="animate-pulse">AI is thinking...</span>
+                    ) : (
+                      <>
+                        {result}
+                        {loading && (
+                          <span className="inline-block w-0.5 h-4 bg-[#1a73e8] animate-pulse ml-0.5 align-middle" />
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
             ) : (
-              <>
-                {result}
-                {loading && (
-                  <span className="inline-block w-0.5 h-4 bg-[#1a73e8] animate-pulse ml-0.5 align-middle" />
+              <div
+                className={clsx(
+                  'text-sm leading-relaxed min-h-[80px] max-h-[300px] overflow-y-auto',
+                  'text-[color:var(--text-primary)] whitespace-pre-wrap',
+                  loading && !result && 'text-[color:var(--text-secondary)] italic'
                 )}
-              </>
+              >
+                {loading && !result ? (
+                  <span className="animate-pulse">AI is thinking...</span>
+                ) : (
+                  <>
+                    {result}
+                    {loading && (
+                      <span className="inline-block w-0.5 h-4 bg-[#1a73e8] animate-pulse ml-0.5 align-middle" />
+                    )}
+                  </>
+                )}
+              </div>
             )}
           </div>
         )}
@@ -254,7 +311,7 @@ export function AIResultCard({
                 onClick={handleAccept}
                 icon={<Check className="w-3.5 h-3.5" />}
               >
-                Accept
+                Apply suggestion
               </Button>
               <Button
                 size="sm"

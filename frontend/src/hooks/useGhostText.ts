@@ -11,6 +11,7 @@ const MIN_CHARS_BEFORE = 20;
 interface UseGhostTextResult {
   hasGhostText: boolean;
   isPredicting: boolean;
+  ghostText: string;
   cancelStream: () => void;
 }
 
@@ -21,6 +22,7 @@ export function useGhostText(
   // Mirror plugin state into React so buttons/hints re-render correctly
   const [hasGhostText, setHasGhostText] = useState(false);
   const [isPredicting, setIsPredicting] = useState(false);
+  const [ghostText, setGhostText] = useState('');
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeStreamRef = useRef(false);
@@ -41,6 +43,7 @@ export function useGhostText(
       const ghost = ghostTextPluginKey.getState(editor.state);
       setHasGhostText(!!ghost?.text);
       setIsPredicting(!!ghost?.isPredicting);
+      setGhostText(ghost?.text ?? '');
     };
     editor.on('transaction', syncState);
     return () => { editor.off('transaction', syncState); };
@@ -135,5 +138,5 @@ export function useGhostText(
     };
   }, [editor, cancelStream, clearTimer, triggerAutocomplete]);
 
-  return { hasGhostText, isPredicting, cancelStream };
+  return { hasGhostText, isPredicting, ghostText, cancelStream };
 }

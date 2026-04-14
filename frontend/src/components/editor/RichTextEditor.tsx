@@ -23,6 +23,7 @@ import { useAutoSave } from '../../hooks/useAutoSave';
 import { useGhostText } from '../../hooks/useGhostText';
 import { useAuthStore } from '../../store/auth';
 import { GhostTextExtension } from '../../extensions/GhostTextExtension';
+import { Sparkles } from 'lucide-react';
 
 interface RichTextEditorProps {
   docId: string;
@@ -154,7 +155,7 @@ export function RichTextEditor({
   useAutoSave(docId, content);
 
   // Ghost text — rendered inline via ProseMirror decoration (GhostTextExtension)
-  const { hasGhostText, isPredicting, cancelStream } = useGhostText(editor, docId);
+  const { hasGhostText, isPredicting, ghostText, cancelStream } = useGhostText(editor, docId);
 
   return (
     <div className="flex flex-col h-full">
@@ -173,10 +174,50 @@ export function RichTextEditor({
             {/* Ghost text is rendered inline at the cursor via GhostTextExtension decoration */}
             <EditorContent editor={editor} />
 
+            {(hasGhostText || isPredicting) && (
+              <div className="absolute bottom-6 right-6 z-20 max-w-[320px] rounded-2xl border bg-[var(--bg-surface)] p-4 shadow-xl shadow-black/5 text-sm">
+                <div className="flex items-center gap-2 text-[var(--text-primary)] mb-2">
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#eaf4ff] text-[#1a73e8]">
+                    <Sparkles size={16} />
+                  </span>
+                  <div>
+                    <p className="font-semibold">AI continuation</p>
+                    <p className="text-xs text-[var(--text-secondary)] leading-5">
+                      {isPredicting && !ghostText.trim()
+                        ? 'Generating a suggestion for what to write next...'
+                        : 'Press Tab to accept or Esc to dismiss.'}
+                    </p>
+                  </div>
+                </div>
+                {ghostText.trim() && (
+                  <div className="mb-3 rounded-xl border border-[var(--border)] bg-white p-3 text-[var(--text-primary)] text-sm leading-5">
+                    {ghostText.trim()}
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => editor?.commands.acceptGhostText()}
+                    disabled={!ghostText.trim()}
+                    className={`rounded-lg border border-transparent bg-[#1a73e8] px-3 py-2 text-xs font-semibold text-white transition ${ghostText.trim() ? 'hover:bg-[#1765c1]' : 'cursor-not-allowed opacity-50'}`}
+                  >
+                    Accept with Tab
+                  </button>
+                  <button
+                    type="button"
+                    onClick={cancelStream}
+                    className="rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition hover:bg-[#f3f7ff]"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Character count + ghost text status */}
             {editor && (
               <div
-                className="mt-6 pt-4 border-t text-xs select-none flex items-center gap-3"
+                className="mt-6 pt-4 border-t text-xs select-none flex flex-wrap items-center gap-3"
                 style={{
                   borderColor: 'var(--border)',
                   color: 'var(--text-secondary)',
@@ -189,7 +230,12 @@ export function RichTextEditor({
                 {isPredicting && !hasGhostText && (
                   <span className="flex items-center gap-1 text-[#1a73e8] animate-pulse">
                     <span className="w-1.5 h-1.5 rounded-full bg-[#1a73e8] inline-block" />
-                    AI writing suggestion…
+                    AI continuation in progress…
+                  </span>
+                )}
+                {hasGhostText && (
+                  <span className="text-[#1a73e8]">
+                    AI continuation available · Tab to accept · Esc to dismiss
                   </span>
                 )}
                 {(hasGhostText || isPredicting) && (
@@ -202,7 +248,7 @@ export function RichTextEditor({
                 )}
                 {hasGhostText && (
                   <button
-                    onClick={() => editor.commands.acceptGhostText()}
+                    onClick={() => editor?.commands.acceptGhostText()}
                     className="text-[#1a73e8] hover:underline font-medium"
                   >
                     Accept (Tab)

@@ -120,7 +120,7 @@ export const GhostTextExtension = Extension.create({
 
             const hint = document.createElement('kbd');
             hint.className = 'ghost-text-hint';
-            hint.textContent = 'Tab';
+            hint.textContent = 'Tab accept';
             wrapper.appendChild(hint);
 
             // No static key — ProseMirror must replace the DOM node every

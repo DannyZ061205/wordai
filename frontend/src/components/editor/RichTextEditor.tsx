@@ -1,4 +1,4 @@
-import { useEffect, useRef, useMemo } from 'react';
+import { useEffect, useRef, useMemo, useState, useLayoutEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Collaboration from '@tiptap/extension-collaboration';
@@ -166,6 +166,62 @@ export function RichTextEditor({
   // Ghost text — rendered inline via ProseMirror decoration (GhostTextExtension)
   const { hasGhostText, isPredicting, ghostText, cancelStream } = useGhostText(editor, docId);
 
+  // Anchor the "AI continuation" card to the cursor Y-position, placed to the
+  // right of the page. Falls back to docked bottom-right when there isn't
+  // enough horizontal room (narrow viewports).
+  const pageRef = useRef<HTMLDivElement>(null);
+  const [cardPos, setCardPos] = useState<{ top: number; left: number } | null>(null);
+  const [cardMounted, setCardMounted] = useState(false);
+  const [cardRevealed, setCardRevealed] = useState(false);
+  const CARD_WIDTH = 320;
+  const CARD_GAP = 24;
+  const TRANSITION_MS = 240;
+  const cardActive = hasGhostText || isPredicting;
+
+  // Mount/unmount with a deferred transition:
+  //  - Entering: mount → next paint → set revealed=true (plays fade-in).
+  //  - Exiting:  set revealed=false (plays fade-out) → unmount after duration.
+  useEffect(() => {
+    if (cardActive) {
+      setCardMounted(true);
+      const id = requestAnimationFrame(() => setCardRevealed(true));
+      return () => cancelAnimationFrame(id);
+    }
+    setCardRevealed(false);
+    const t = setTimeout(() => setCardMounted(false), TRANSITION_MS);
+    return () => clearTimeout(t);
+  }, [cardActive]);
+
+  useLayoutEffect(() => {
+    // While exiting (cardMounted && !cardActive) keep the last position so the
+    // card fades out in place rather than snapping to the fallback corner.
+    if (!editor || !cardActive) return;
+    const update = () => {
+      if (!editor || !pageRef.current) return;
+      const pos = editor.state.selection.from;
+      try {
+        const coords = editor.view.coordsAtPos(pos);
+        const pageRect = pageRef.current.getBoundingClientRect();
+        const left = pageRect.right + CARD_GAP;
+        if (left + CARD_WIDTH > window.innerWidth - 8) {
+          setCardPos(null); // not enough room → fall back
+          return;
+        }
+        const top = Math.max(8, coords.top);
+        setCardPos({ top, left });
+      } catch {
+        setCardPos(null);
+      }
+    };
+    update();
+    window.addEventListener('scroll', update, true);
+    window.addEventListener('resize', update);
+    return () => {
+      window.removeEventListener('scroll', update, true);
+      window.removeEventListener('resize', update);
+    };
+  }, [editor, cardActive, ghostText]);
+
   return (
     <div className="flex flex-col h-full">
       {editable && <Toolbar editor={editor} />}
@@ -173,6 +229,7 @@ export function RichTextEditor({
       <div className="flex-1 overflow-auto" style={{ background: 'var(--bg-app)' }}>
         <div className="mx-auto my-8 max-w-[800px] px-4">
           <div
+            ref={pageRef}
             className="relative bg-white dark:bg-[#2d2d2d] rounded-lg"
             style={{
               boxShadow: '0 2px 4px rgba(0,0,0,0.1), 0 8px 16px rgba(0,0,0,0.05)',
@@ -183,8 +240,20 @@ export function RichTextEditor({
             {/* Ghost text is rendered inline at the cursor via GhostTextExtension decoration */}
             <EditorContent editor={editor} />
 
-            {(hasGhostText || isPredicting) && (
-              <div className="absolute bottom-6 right-6 z-20 max-w-[320px] rounded-2xl border bg-[var(--bg-surface)] p-4 shadow-xl shadow-black/5 text-sm">
+            {cardMounted && (
+              <div
+                className={`z-20 w-[320px] rounded-2xl border bg-[var(--bg-surface)] p-4 shadow-xl shadow-black/5 text-sm ${
+                  cardPos ? 'fixed' : 'absolute bottom-6 right-6'
+                } ${cardRevealed ? 'opacity-100 translate-x-0 scale-100' : 'opacity-0 -translate-x-2 scale-[0.96]'}`}
+                aria-hidden={!cardRevealed}
+                style={{
+                  ...(cardPos ? { top: cardPos.top, left: cardPos.left } : {}),
+                  transition:
+                    'opacity 240ms cubic-bezier(0.16, 1, 0.3, 1), transform 240ms cubic-bezier(0.16, 1, 0.3, 1)',
+                  transformOrigin: 'left center',
+                  willChange: 'opacity, transform',
+                }}
+              >
                 <div className="flex items-center gap-2 text-[var(--text-primary)] mb-2">
                   <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#eaf4ff] text-[#1a73e8]">
                     <Sparkles size={16} />

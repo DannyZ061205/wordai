@@ -9,11 +9,12 @@
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | React 18 + Vite + TypeScript, TailwindCSS, shadcn/ui |
-| Editor | Tiptap 2 (rich text) + Yjs CRDT (real-time sync) |
-| Backend | FastAPI (Python 3.11), JWT auth, JSON file persistence |
-| AI | DeepSeek API (`deepseek-chat`) via SSE streaming |
-| Transport | WebSocket (Yjs binary) + HTTP REST |
+| Frontend | React 18 + Vite + TypeScript, TailwindCSS |
+| Editor | Tiptap 2 (rich text, no CRDT) |
+| Real-time | Custom JSON-over-WebSocket broadcast (last-write-wins; ~100 ms propagation) |
+| Backend | FastAPI (Python 3.11), JWT access + refresh, JSON file persistence |
+| AI | Multi-provider (DeepSeek / OpenAI / Anthropic / Grok / custom OpenAI-compatible) over SSE streaming |
+| Transport | WebSocket (JSON frames) + HTTP REST |
 
 ---
 
@@ -69,19 +70,20 @@ Copy `backend/.env.example` to `backend/.env` and fill in:
 
 ## Features
 
-- **Real-time collaboration** — Yjs CRDT over WebSocket; multiple users edit simultaneously with no conflicts
-- **Presence indicators** — live cursors with per-user colour
-- **AI writing assistant** — powered by DeepSeek:
+- **Real-time collaboration** — lightweight JSON-over-WebSocket broadcast. Typing in one tab reflects in every other tab editing the same document within ~100 ms. Last-write-wins semantics.
+- **Presence indicators** — live "who's here" list derived from WebSocket connect/disconnect events.
+- **AI writing assistant** — multi-provider (DeepSeek / OpenAI / Anthropic / Grok / custom OpenAI-compatible) over SSE streaming:
   - Rewrite (with tone selection)
   - Summarise
-  - Translate
+  - Translate (target language selectable)
   - Expand
   - Grammar check
   - Custom instruction
-  - **Ghost autocomplete** — Copilot-style prediction after 6 s of inactivity
-- **Version history** — automatic snapshots; restore any previous version
-- **Sharing** — share by email/username (editor/viewer), share-by-link with optional expiry
-- **Dark / Light mode** — system-preference aware, manually toggleable
+  - **Ghost autocomplete** — Copilot-style prediction after a pause in typing
+- **Suggestion UX** — side-by-side original vs. suggestion, partial acceptance (select which segments to apply), edit-before-accept, undo after accept.
+- **Version history** — automatic snapshots; restore any previous version.
+- **Sharing** — invite by email/username with editor/viewer role, *or* generate a share-by-link with configurable permissions and revocation.
+- **Dark / Light mode** — system-preference aware, manually toggleable.
 
 ---
 
@@ -93,8 +95,8 @@ wordai/
 │   ├── app/
 │   │   ├── auth/     # JWT auth
 │   │   ├── documents/# CRUD + versions + sharing
-│   │   ├── ai/       # DeepSeek streaming + prompts
-│   │   ├── websocket/# Yjs WebSocket relay
+│   │   ├── ai/       # Multi-provider streaming + prompts (prompts in prompts/*.txt)
+│   │   ├── websocket/# JSON broadcast relay (edits + presence)
 │   │   └── storage/  # JSON file persistence
 │   └── tests/        # 36 pytest tests
 ├── frontend/         # React + Vite + TypeScript
@@ -113,4 +115,5 @@ wordai/
 ## Assignment Context
 
 This is the Proof-of-Concept implementation for **AI1220 Assignment 2**.
-All bonus features are implemented: real Yjs CRDT, remote cursors, share-by-link, partial AI acceptance, Playwright E2E tests.
+
+Bonus features implemented: **share-by-link with configurable permissions & revocation**, **partial acceptance of AI suggestions**, **Playwright E2E tests**. CRDT-based conflict resolution and remote cursor rendering were dropped in favour of a simpler, reliably-working JSON broadcast — see `DEVIATIONS.md` §2 for the full rationale.

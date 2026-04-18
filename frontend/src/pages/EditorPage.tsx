@@ -344,6 +344,7 @@ function EditorPageInner() {
             editable={true}
             onContentChange={() => {}}
             onAIAction={handleAIAction}
+            onCollaboratorsChange={setCollaborators}
           />
         </div>
       </div>

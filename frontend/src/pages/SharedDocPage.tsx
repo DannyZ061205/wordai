@@ -17,7 +17,8 @@ import { EditorProvider, useEditorContext } from '../components/editor/EditorCon
 import { RichTextEditor } from '../components/editor/RichTextEditor';
 import { AIPanel } from '../components/ai/AIPanel';
 import { useRealtimeSync } from '../hooks/useRealtimeSync';
-import { AIFeature } from '../types';
+import { AIFeature, Collaborator } from '../types';
+import { PresenceBar } from '../components/collaboration/PresenceBar';
 
 interface SharedDoc extends Document {
   role: string;
@@ -176,6 +177,7 @@ export function SharedDocPage() {
 function SharedEditorView({ doc, shareToken }: { doc: SharedDoc; shareToken: string }) {
   const { editor } = useEditorContext();
   const [aiPanelCollapsed, setAiPanelCollapsed] = useState(false);
+  const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
   const [featureRequest, setFeatureRequest] = useState<{
     feature: AIFeature;
     key: number;
@@ -201,7 +203,12 @@ function SharedEditorView({ doc, shareToken }: { doc: SharedDoc; shareToken: str
           requestedFeature={featureRequest}
         />
       </div>
-      <div className="flex-1 min-w-0 overflow-hidden">
+      <div className="flex-1 min-w-0 overflow-hidden flex flex-col">
+        {collaborators.length > 0 && (
+          <div className="flex justify-end px-4 pt-2">
+            <PresenceBar collaborators={collaborators} />
+          </div>
+        )}
         <RichTextEditor
           docId={doc.id}
           initialContent={doc.content}
@@ -209,6 +216,7 @@ function SharedEditorView({ doc, shareToken }: { doc: SharedDoc; shareToken: str
           shareToken={shareToken}
           onContentChange={() => {}}
           onAIAction={handleAIAction}
+          onCollaboratorsChange={setCollaborators}
         />
       </div>
     </div>

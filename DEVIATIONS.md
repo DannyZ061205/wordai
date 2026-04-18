@@ -23,40 +23,40 @@ a real database without touching the service or router layers.
 
 ---
 
-## 2. Real-Time Sync: Yjs CRDTs Instead of Last-Write-Wins
+## 2. Real-Time Sync: Simple HTML Broadcast (Last-Write-Wins)
 
 **A1 Design**: A basic operational-transform or last-write-wins approach was outlined for
 concurrent editing.
 
-**A2 Implementation**: Yjs (a CRDT library) is used over a `y-websocket` relay. The backend
-WebSocket handler (`backend/app/websocket/`) is a pure binary relay — it does not parse Yjs
-messages. All conflict resolution happens in the client-side Yjs runtime.
+**A2 Implementation**: A minimal JSON WebSocket protocol. Each client debounces local edits
+through a leading-edge throttle (~80 ms) and broadcasts `{ "type": "edit", "html": "...",
+"origin": "<clientId>" }`. The FastAPI backend (`backend/app/websocket/manager.py`) is a pure
+JSON relay — it forwards every frame to all other clients in the same document room without
+parsing the payload. Receivers apply the incoming HTML via `editor.commands.setContent(...)`
+while preserving the caret position. Presence is broadcast separately as
+`{ "type": "awareness", "users": [...] }` whenever someone connects or disconnects.
 
-**Why**: Yjs provides character-level conflict resolution with no data loss under concurrent edits —
-strictly better than last-write-wins. The relay-only backend is simpler than an OT server and more
-correct. This also earns the CRDT bonus points.
+**Why we moved here from Yjs**: An earlier implementation used Tiptap's `Collaboration`
+extension on top of `y-websocket`. The extension silently failed to push local edits through
+the socket in our setup (no `sync-update` frames ever reached the server), so other tabs
+only saw changes after a manual refresh. Several hours of debugging the Yjs / y-websocket /
+Tiptap boundary made it clear that the right trade-off for this PoC was a simpler protocol
+we fully understand, rather than a CRDT stack we can't confidently reason about.
 
-**Verdict**: Improvement. Zero data loss, simpler backend, industry-standard approach.
+**Trade-offs**:
+- ✅ Real-time sync is reliable: typing in one tab appears in other tabs within ~100 ms.
+- ✅ The backend is trivial to reason about and to test.
+- ✅ HTTP auto-save still runs in parallel, so content is durable on the server.
+- ❌ Conflict semantics are **last-writer-wins** on a per-broadcast-window basis. Two users
+  typing into the *same paragraph* simultaneously will overwrite each other. This is the
+  baseline the assignment explicitly allows; the CRDT bonus is not claimed.
+
+**Verdict**: Compromise in terms of conflict resolution (we lost the CRDT bonus), but a
+clear improvement in reliability, debuggability, and code volume.
 
 ---
 
-## 3. Cursor Tracking: CollaborationCursor Extension Added
-
-**A1 Design**: Presence was limited to a "who is online" list (the baseline).
-
-**A2 Implementation**: Full remote cursor and selection tracking using Tiptap's
-`CollaborationCursor` extension and Yjs awareness protocol, rendering each collaborator's cursor in
-a distinct color with a name label.
-
-**Why**: The Yjs awareness protocol already carries cursor position data at no extra cost. Rendering
-it in Tiptap required only the `CollaborationCursor` extension. This earns the cursor-tracking bonus
-points.
-
-**Verdict**: Improvement. No architectural cost; pure feature addition.
-
----
-
-## 4. AI Provider: Multi-Provider Abstraction Instead of Single Provider
+## 3. AI Provider: Multi-Provider Abstraction Instead of Single Provider
 
 **A1 Design**: A single LLM provider (OpenAI) was specified.
 
@@ -73,7 +73,7 @@ project-level API key management.
 
 ---
 
-## 5. Ghost-Text Autocomplete Feature Added
+## 4. Ghost-Text Autocomplete Feature Added
 
 **A1 Design**: The six AI features (rewrite, summarize, translate, expand, grammar, custom) were
 specified. Autocomplete was not in the A1 design.
@@ -89,7 +89,7 @@ AI). It was straightforward to add as a streaming AI call with the existing infr
 
 ---
 
-## 6. Share-by-Link Added
+## 5. Share-by-Link Added
 
 **A1 Design**: Sharing was specified as email/username-only with role assignment.
 
@@ -104,7 +104,7 @@ share-by-link bonus points.
 
 ---
 
-## 7. AI Interaction History: JSON Log Instead of Database Table
+## 6. AI Interaction History: JSON Log Instead of Database Table
 
 **A1 Design**: AI interaction history was to be stored in the database.
 
@@ -118,7 +118,7 @@ per-user.
 
 ---
 
-## 8. Version History: Snapshot-on-Save Instead of OT Log
+## 7. Version History: Snapshot-on-Save Instead of OT Log
 
 **A1 Design**: Version history was described as an append-only operation log (similar to OT).
 
@@ -133,7 +133,7 @@ documents.
 
 ---
 
-## 9. Token Refresh: Silent Axios Interceptor Instead of Explicit UI Prompt
+## 8. Token Refresh: Silent Axios Interceptor Instead of Explicit UI Prompt
 
 **A1 Design**: Token expiration handling was described as showing a "session expired" modal.
 

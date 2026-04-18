@@ -14,8 +14,6 @@
     "@tiptap/core": "^2.4.0",
     "@tiptap/extension-character-count": "^2.4.0",
     "@tiptap/extension-code-block-lowlight": "^2.4.0",
-    "@tiptap/extension-collaboration": "^2.4.0",
-    "@tiptap/extension-collaboration-cursor": "^2.4.0",
     "@tiptap/extension-color": "^2.4.0",
     "@tiptap/extension-highlight": "^2.4.0",
     "@tiptap/extension-image": "^2.4.0",
@@ -42,8 +40,6 @@
     "react-dom": "^18.3.1",
     "react-hot-toast": "^2.4.1",
     "react-router-dom": "^6.24.0",
-    "y-websocket": "^2.0.4",
-    "yjs": "^13.6.18",
     "zustand": "^4.5.4"
   },
   "devDependencies": {

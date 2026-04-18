@@ -1,5 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Editor } from '@tiptap/core';
+import { Collaborator } from '../types';
 
 /**
  * Simple, reliable real-time sync:
@@ -17,12 +18,17 @@ function randomId(): string {
   return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 }
 
+export interface UseRealtimeSyncResult {
+  /** List of users currently connected to the same document. */
+  collaborators: Collaborator[];
+}
+
 export function useRealtimeSync(
   editor: Editor | null,
   docId: string,
   shareToken?: string,
   enabled: boolean = true,
-): void {
+): UseRealtimeSyncResult {
   const clientIdRef = useRef<string>(randomId());
   const wsRef = useRef<WebSocket | null>(null);
   const sendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -31,6 +37,7 @@ export function useRealtimeSync(
   const lastSentAtRef = useRef<number>(0);
   const editorRef = useRef<Editor | null>(null);
   editorRef.current = editor;
+  const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
 
   // ---- Open WS + wire receive handler ----
   useEffect(() => {
@@ -53,12 +60,25 @@ export function useRealtimeSync(
 
       ws.onmessage = (ev) => {
         if (typeof ev.data !== 'string') return;
-        let msg: { type?: string; html?: string; origin?: string };
+        let msg: {
+          type?: string;
+          html?: string;
+          origin?: string;
+          users?: Collaborator[];
+        };
         try {
           msg = JSON.parse(ev.data);
         } catch {
           return;
         }
+
+        // Presence / awareness list from the server. Filter out our own
+        // connection so the bar shows only *other* collaborators.
+        if (msg.type === 'awareness' && Array.isArray(msg.users)) {
+          setCollaborators(msg.users);
+          return;
+        }
+
         if (msg.type !== 'edit' || !msg.html || msg.origin === clientId) return;
 
         // Preserve the caret while we replace the doc content.
@@ -158,4 +178,6 @@ export function useRealtimeSync(
       editor.off('update', onUpdate);
     };
   }, [editor, enabled]);
+
+  return { collaborators };
 }

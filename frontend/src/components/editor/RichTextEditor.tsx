@@ -21,6 +21,8 @@ import { useRealtimeSync } from '../../hooks/useRealtimeSync';
 import { GhostTextExtension } from '../../extensions/GhostTextExtension';
 import { Sparkles } from 'lucide-react';
 
+import { Collaborator } from '../../types';
+
 interface RichTextEditorProps {
   docId: string;
   initialContent: string;
@@ -28,6 +30,7 @@ interface RichTextEditorProps {
   shareToken?: string;
   onContentChange?: (content: string) => void;
   onAIAction?: (feature: 'rewrite' | 'summarize' | 'translate', text: string) => void;
+  onCollaboratorsChange?: (collaborators: Collaborator[]) => void;
 }
 
 export function RichTextEditor({
@@ -37,6 +40,7 @@ export function RichTextEditor({
   shareToken,
   onContentChange,
   onAIAction,
+  onCollaboratorsChange,
 }: RichTextEditorProps) {
   const { setEditor } = useEditorContext();
 
@@ -82,7 +86,12 @@ export function RichTextEditor({
   // Real-time sync via simple JSON broadcast over WebSocket — no Yjs.
   // Always on: viewers (editable=false) still receive updates, they just
   // don't broadcast their own.
-  useRealtimeSync(editor, docId, shareToken, true);
+  const { collaborators } = useRealtimeSync(editor, docId, shareToken, true);
+
+  // Bubble the collaborator list up to the page header.
+  useEffect(() => {
+    onCollaboratorsChange?.(collaborators);
+  }, [collaborators, onCollaboratorsChange]);
 
   // Auto-save (HTTP) — separate from live sync, runs in both owner and
   // guest tabs so the latest content is always durable on the server.
@@ -207,7 +216,7 @@ export function RichTextEditor({
                   </button>
                   <button
                     type="button"
-                    onClick={cancelStream}
+                    onClick={() => cancelStream()}
                     className="rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition hover:bg-[#f3f7ff]"
                   >
                     Dismiss
@@ -241,7 +250,7 @@ export function RichTextEditor({
                 )}
                 {(hasGhostText || isPredicting) && (
                   <button
-                    onClick={cancelStream}
+                    onClick={() => cancelStream()}
                     className="text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)] hover:underline"
                   >
                     Dismiss (Esc)

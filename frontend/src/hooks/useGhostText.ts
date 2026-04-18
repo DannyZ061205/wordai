@@ -6,7 +6,7 @@ import { ghostTextPluginKey } from '../extensions/GhostTextExtension';
 // How long after the user stops typing before we request a suggestion
 const GHOST_TRIGGER_DELAY_MS = 3000;
 // Minimum characters before cursor before we bother predicting
-const MIN_CHARS_BEFORE = 20;
+const MIN_CHARS_BEFORE = 1;
 
 interface UseGhostTextResult {
   hasGhostText: boolean;

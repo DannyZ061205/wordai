@@ -1,8 +1,6 @@
 import { useEffect, useRef, useMemo, useState, useLayoutEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import Collaboration from '@tiptap/extension-collaboration';
-import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
 import CharacterCount from '@tiptap/extension-character-count';
 import Highlight from '@tiptap/extension-highlight';
 import Underline from '@tiptap/extension-underline';
@@ -13,15 +11,13 @@ import Placeholder from '@tiptap/extension-placeholder';
 import Link from '@tiptap/extension-link';
 import Image from '@tiptap/extension-image';
 import Typography from '@tiptap/extension-typography';
-import * as Y from 'yjs';
-import { WebsocketProvider } from 'y-websocket';
 
 import { useEditorContext } from './EditorContext';
 import { Toolbar } from './Toolbar';
 import { FloatingAIMenu } from './FloatingAIMenu';
 import { useAutoSave } from '../../hooks/useAutoSave';
 import { useGhostText } from '../../hooks/useGhostText';
-import { useAuthStore } from '../../store/auth';
+import { useRealtimeSync } from '../../hooks/useRealtimeSync';
 import { GhostTextExtension } from '../../extensions/GhostTextExtension';
 import { Sparkles } from 'lucide-react';
 
@@ -34,19 +30,6 @@ interface RichTextEditorProps {
   onAIAction?: (feature: 'rewrite' | 'summarize' | 'translate', text: string) => void;
 }
 
-const COLLAB_COLORS = [
-  '#e63946', '#457b9d', '#2a9d8f', '#e9c46a',
-  '#f4a261', '#6d6875', '#52b788', '#4cc9f0',
-];
-
-function getColor(userId: string): string {
-  let hash = 0;
-  for (let i = 0; i < userId.length; i++) {
-    hash = userId.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return COLLAB_COLORS[Math.abs(hash) % COLLAB_COLORS.length];
-}
-
 export function RichTextEditor({
   docId,
   initialContent,
@@ -56,100 +39,37 @@ export function RichTextEditor({
   onAIAction,
 }: RichTextEditorProps) {
   const { setEditor } = useEditorContext();
-  const user = useAuthStore((s) => s.user);
-  const collaborationUser = user
-    ? {
-        name: user.username,
-        color: getColor(user.id),
-        userId: user.id,
-      }
-    : shareToken
-      ? {
-          name: 'Guest',
-          color: getColor(`guest_${shareToken.slice(0, 8)}`),
-          userId: `guest_${shareToken.slice(0, 8)}`,
-        }
-      : null;
 
-  // Create Y.Doc and WebsocketProvider once — stable refs, never recreated
-  const ydocRef = useRef<Y.Doc | null>(null);
-  const providerRef = useRef<WebsocketProvider | null>(null);
-
-  if (!ydocRef.current) {
-    ydocRef.current = new Y.Doc();
-  }
-  if (!providerRef.current && editable && docId) {
-    const token = localStorage.getItem('access_token');
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${wsProtocol}//${window.location.hostname}:8000`;
-    const params = new URLSearchParams();
-    if (token) params.set('token', token);
-    if (shareToken) params.set('share_token', shareToken);
-    const roomName = `ws/${docId}?${params.toString()}`;
-    providerRef.current = new WebsocketProvider(wsUrl, roomName, ydocRef.current, {
-      connect: true,
-    });
-  }
-
-  // Set awareness after provider exists
-  useEffect(() => {
-    const provider = providerRef.current;
-    if (!provider || !collaborationUser) return;
-    provider.awareness.setLocalStateField('user', collaborationUser);
-  }, [collaborationUser]);
-
-  // Cleanup on unmount only
-  useEffect(() => {
-    return () => {
-      providerRef.current?.destroy();
-      providerRef.current = null;
-      ydocRef.current?.destroy();
-      ydocRef.current = null;
-    };
-  }, []);
-
-  // Stable extensions — created once, never changes between renders
-  const extensions = useMemo(() => [
-    StarterKit.configure({ history: false }),
-    ...(editable && ydocRef.current
-      ? [
-          Collaboration.configure({ document: ydocRef.current }),
-          ...(providerRef.current
-            ? [CollaborationCursor.configure({
-                provider: providerRef.current,
-                user: {
-                  name: collaborationUser?.name ?? 'Anonymous',
-                  color: collaborationUser?.color ?? '#999',
-                },
-              })]
-            : []),
-        ]
-      : []),
-    CharacterCount,
-    Highlight.configure({ multicolor: true }),
-    Underline,
-    TextAlign.configure({ types: ['heading', 'paragraph'] }),
-    TaskList,
-    TaskItem.configure({ nested: true }),
-    Placeholder.configure({
-      placeholder: 'Start writing… or select text for AI assistance',
-    }),
-    Link.configure({
-      openOnClick: false,
-      HTMLAttributes: { rel: 'noopener noreferrer', target: '_blank' },
-    }),
-    Image.configure({ inline: false }),
-    Typography,
-    GhostTextExtension,
-  ], []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Extensions are stable — created once.
+  const extensions = useMemo(
+    () => [
+      StarterKit,
+      CharacterCount,
+      Highlight.configure({ multicolor: true }),
+      Underline,
+      TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      TaskList,
+      TaskItem.configure({ nested: true }),
+      Placeholder.configure({
+        placeholder: 'Start writing… or select text for AI assistance',
+      }),
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: { rel: 'noopener noreferrer', target: '_blank' },
+      }),
+      Image.configure({ inline: false }),
+      Typography,
+      GhostTextExtension,
+    ],
+    [],
+  );
 
   const editor = useEditor({
     extensions,
     content: initialContent,
     editable,
     onUpdate: ({ editor }) => {
-      const html = editor.getHTML();
-      onContentChange?.(html);
+      onContentChange?.(editor.getHTML());
     },
   });
 
@@ -159,7 +79,13 @@ export function RichTextEditor({
     return () => setEditor(null);
   }, [editor, setEditor]);
 
-  // Auto-save
+  // Real-time sync via simple JSON broadcast over WebSocket — no Yjs.
+  // Always on: viewers (editable=false) still receive updates, they just
+  // don't broadcast their own.
+  useRealtimeSync(editor, docId, shareToken, true);
+
+  // Auto-save (HTTP) — separate from live sync, runs in both owner and
+  // guest tabs so the latest content is always durable on the server.
   const content = editor?.getHTML() ?? '';
   useAutoSave(docId, content, shareToken);
 
@@ -178,9 +104,6 @@ export function RichTextEditor({
   const TRANSITION_MS = 240;
   const cardActive = hasGhostText || isPredicting;
 
-  // Mount/unmount with a deferred transition:
-  //  - Entering: mount → next paint → set revealed=true (plays fade-in).
-  //  - Exiting:  set revealed=false (plays fade-out) → unmount after duration.
   useEffect(() => {
     if (cardActive) {
       setCardMounted(true);
@@ -193,8 +116,6 @@ export function RichTextEditor({
   }, [cardActive]);
 
   useLayoutEffect(() => {
-    // While exiting (cardMounted && !cardActive) keep the last position so the
-    // card fades out in place rather than snapping to the fallback corner.
     if (!editor || !cardActive) return;
     const update = () => {
       if (!editor || !pageRef.current) return;
@@ -204,7 +125,7 @@ export function RichTextEditor({
         const pageRect = pageRef.current.getBoundingClientRect();
         const left = pageRect.right + CARD_GAP;
         if (left + CARD_WIDTH > window.innerWidth - 8) {
-          setCardPos(null); // not enough room → fall back
+          setCardPos(null);
           return;
         }
         const top = Math.max(8, coords.top);
@@ -237,7 +158,6 @@ export function RichTextEditor({
               padding: '80px 64px',
             }}
           >
-            {/* Ghost text is rendered inline at the cursor via GhostTextExtension decoration */}
             <EditorContent editor={editor} />
 
             {cardMounted && (
@@ -292,7 +212,6 @@ export function RichTextEditor({
               </div>
             )}
 
-            {/* Character count + ghost text status */}
             {editor && (
               <div
                 className="mt-6 pt-4 border-t text-xs select-none flex flex-wrap items-center gap-3"
@@ -338,12 +257,8 @@ export function RichTextEditor({
         </div>
       </div>
 
-      {/* Floating AI menu on text selection */}
       {editor && editable && onAIAction && (
-        <FloatingAIMenu
-          editor={editor}
-          onAIAction={onAIAction}
-        />
+        <FloatingAIMenu editor={editor} onAIAction={onAIAction} />
       )}
     </div>
   );

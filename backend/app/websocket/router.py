@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from typing import Optional
 
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
@@ -57,16 +58,21 @@ async def websocket_endpoint(
         await websocket.close(code=4003)
         return
 
-    await manager.connect(websocket, doc_id, user_id, username)
+    # One connection id per WebSocket so a single user in multiple tabs
+    # doesn't collide in the manager's connection map.
+    conn_id = f"{user_id}:{uuid.uuid4().hex[:8]}"
+
+    await manager.connect(websocket, doc_id, conn_id, user_id, username)
 
     try:
         while True:
             message = await websocket.receive()
             if message["type"] == "websocket.disconnect":
                 break
-            if "bytes" in message and message["bytes"] is not None:
-                await manager.handle_yjs_message(doc_id, user_id, message["bytes"])
+            text = message.get("text")
+            if text is not None:
+                await manager.handle_text_message(doc_id, conn_id, text)
     except WebSocketDisconnect:
         pass
     finally:
-        await manager.disconnect(websocket, doc_id, user_id)
+        await manager.disconnect(websocket, doc_id, conn_id)

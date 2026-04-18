@@ -15,13 +15,23 @@ import TaskItem from '@tiptap/extension-task-item';
 import Link2 from '@tiptap/extension-link';
 import { EditorProvider } from '../components/editor/EditorContext';
 import { RichTextEditor } from '../components/editor/RichTextEditor';
+import { useRealtimeSync } from '../hooks/useRealtimeSync';
 
 interface SharedDoc extends Document {
   role: string;
 }
 
-// Fallback read-only viewer for viewers (no Yjs needed)
-function ReadOnlyViewer({ content }: { content: string }) {
+// Live read-only viewer — receives real-time updates via the same WebSocket
+// protocol the editors use, but never broadcasts its own changes.
+function ReadOnlyViewer({
+  content,
+  docId,
+  shareToken,
+}: {
+  content: string;
+  docId: string;
+  shareToken?: string;
+}) {
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -35,6 +45,9 @@ function ReadOnlyViewer({ content }: { content: string }) {
     content,
     editable: false,
   });
+
+  // Subscribe to live edits (receive-only because editor.isEditable === false).
+  useRealtimeSync(editor, docId, shareToken, true);
 
   return (
     <div
@@ -154,8 +167,8 @@ export function SharedDocPage() {
               />
             </EditorProvider>
           ) : (
-            // Viewer role: simple read-only view, no WS needed
-            <ReadOnlyViewer content={doc.content} />
+            // Viewer role: read-only but still subscribes to live updates
+            <ReadOnlyViewer content={doc.content} docId={doc.id} shareToken={token} />
           )
         ) : null}
       </main>

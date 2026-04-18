@@ -6,6 +6,7 @@ import { Button } from '../components/shared/Button';
 import { Input } from '../components/shared/Input';
 import { ThemeToggle } from '../components/shared/ThemeToggle';
 import { authApi } from '../api/auth';
+import { getErrorMessage } from '../api/axios';
 import { useAuthStore } from '../store/auth';
 
 export function RegisterPage() {
@@ -65,9 +66,7 @@ export function RegisterPage() {
       toast.success(`Welcome to wordAI, ${response.user.username}!`);
       navigate('/', { replace: true });
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : 'Registration failed. Please try again.';
-      toast.error(message);
+      toast.error(getErrorMessage(err, 'Registration failed. Please try again.'));
     } finally {
       setLoading(false);
     }

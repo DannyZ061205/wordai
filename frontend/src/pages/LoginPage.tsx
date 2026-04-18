@@ -6,6 +6,7 @@ import { Button } from '../components/shared/Button';
 import { Input } from '../components/shared/Input';
 import { ThemeToggle } from '../components/shared/ThemeToggle';
 import { authApi } from '../api/auth';
+import { getErrorMessage } from '../api/axios';
 import { useAuthStore } from '../store/auth';
 
 export function LoginPage() {
@@ -48,11 +49,7 @@ export function LoginPage() {
       toast.success(`Welcome back, ${user.username}!`);
       navigate(from, { replace: true });
     } catch (err: unknown) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : 'Invalid email or password. Please try again.';
-      toast.error(message);
+      toast.error(getErrorMessage(err, 'Invalid email or password. Please try again.'));
     } finally {
       setLoading(false);
     }

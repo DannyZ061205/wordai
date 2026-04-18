@@ -1,5 +1,20 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
+export function getErrorMessage(err: unknown, fallback: string): string {
+  if (axios.isAxiosError(err)) {
+    const detail = (err.response?.data as { detail?: unknown } | undefined)?.detail;
+    if (typeof detail === 'string') return detail;
+    if (Array.isArray(detail)) {
+      const first = detail[0];
+      if (first && typeof first === 'object' && 'msg' in first) {
+        return String((first as { msg: unknown }).msg);
+      }
+    }
+  }
+  if (err instanceof Error && err.message) return err.message;
+  return fallback;
+}
+
 const api = axios.create({
   baseURL: '/api',
   headers: {

@@ -45,6 +45,9 @@ const FEATURES: Array<{
   icon: React.ReactNode;
   color: string;
   needsSelection: boolean;
+  // Features with options expand on click and surface a Run button;
+  // features without options run immediately on click.
+  hasOptions: boolean;
 }> = [
   {
     id: 'rewrite',
@@ -53,6 +56,7 @@ const FEATURES: Array<{
     icon: <Pencil className="w-4 h-4" />,
     color: '#1a73e8',
     needsSelection: true,
+    hasOptions: true, // tone
   },
   {
     id: 'summarize',
@@ -61,6 +65,7 @@ const FEATURES: Array<{
     icon: <FileText className="w-4 h-4" />,
     color: '#34a853',
     needsSelection: true,
+    hasOptions: false,
   },
   {
     id: 'translate',
@@ -69,6 +74,7 @@ const FEATURES: Array<{
     icon: <Globe className="w-4 h-4" />,
     color: '#fbbc04',
     needsSelection: true,
+    hasOptions: true, // language
   },
   {
     id: 'expand',
@@ -77,6 +83,7 @@ const FEATURES: Array<{
     icon: <Expand className="w-4 h-4" />,
     color: '#e9c46a',
     needsSelection: true,
+    hasOptions: false,
   },
   {
     id: 'grammar',
@@ -85,6 +92,7 @@ const FEATURES: Array<{
     icon: <SpellCheck className="w-4 h-4" />,
     color: '#457b9d',
     needsSelection: true,
+    hasOptions: false,
   },
   {
     id: 'custom',
@@ -93,6 +101,7 @@ const FEATURES: Array<{
     icon: <MessageSquare className="w-4 h-4" />,
     color: '#6d6875',
     needsSelection: true,
+    hasOptions: true, // prompt
   },
 ];
 
@@ -200,9 +209,9 @@ export function AIPanel({
     clear();
 
     const options: Record<string, unknown> = {};
-    if (featureId === 'translate') options.language = translateLang;
+    if (featureId === 'translate') options.target_language = translateLang;
     if (featureId === 'rewrite') options.tone = rewriteTone;
-    if (featureId === 'custom') options.prompt = customPrompt;
+    if (featureId === 'custom') options.instruction = customPrompt;
 
     toast.success(`Running ${FEATURE_LABELS[featureId]}...`, { duration: 1500 });
 
@@ -356,7 +365,9 @@ export function AIPanel({
                     const isDisabled = feature.needsSelection && !hasSelection;
                     const showOptions = isActive && !result && !loading;
 
-                    // Collapsed card — bordered, hoverable, isolated
+                    // Collapsed card — bordered, hoverable, isolated.
+                    // No-option features run immediately on click; those
+                    // with options (rewrite/translate/custom) expand first.
                     if (!isActive) {
                       return (
                         <FeatureButton
@@ -367,19 +378,26 @@ export function AIPanel({
                           color={feature.color}
                           disabled={isDisabled}
                           onClick={() => {
-                            setActiveFeature(feature.id);
-                            clear();
+                            if (feature.hasOptions) {
+                              setActiveFeature(feature.id);
+                              clear();
+                            } else {
+                              setActiveFeature(feature.id);
+                              void handleRunFeature(feature.id);
+                            }
                           }}
                         />
                       );
                     }
 
-                    // Expanded card — header + options fused into one surface
+                    // Expanded card — header + options fused into one surface.
+                    // NOTE: no `overflow-hidden` — the Select's dropdown uses
+                    // absolute positioning and would be clipped otherwise.
                     return (
                       <div
                         key={feature.id}
                         className={clsx(
-                          'rounded-lg border overflow-hidden transition-all',
+                          'rounded-lg border transition-all',
                           'border-[#1a73e8]/60 bg-[#e8f0fe]/40 dark:bg-[#1a3a5c]/30',
                           'shadow-sm',
                         )}
@@ -395,7 +413,7 @@ export function AIPanel({
                         />
 
                         {showOptions && (
-                          <div className="px-3 pb-3 pt-0.5 space-y-3 border-t border-[#1a73e8]/15 bg-[color:var(--bg-surface)]/60">
+                          <div className="px-3 pb-3 pt-0.5 space-y-3 border-t border-[#1a73e8]/15 bg-[color:var(--bg-surface)]/60 rounded-b-lg">
                             {feature.id === 'translate' && (
                               <div className="pt-3">
                                 <label

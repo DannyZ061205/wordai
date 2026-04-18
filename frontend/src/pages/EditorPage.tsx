@@ -139,6 +139,10 @@ function EditorPageInner() {
   const [doc, setDoc] = useState<Document | null>(prefetchedDoc);
   const [loading, setLoading] = useState(!prefetchedDoc);
   const [aiPanelCollapsed, setAiPanelCollapsed] = useState(false);
+  const [featureRequest, setFeatureRequest] = useState<{
+    feature: 'rewrite' | 'summarize' | 'translate';
+    key: number;
+  } | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
   const [aiHistoryOpen, setAiHistoryOpen] = useState(false);
@@ -202,9 +206,9 @@ function EditorPageInner() {
 
   const handleAIAction = useCallback(
     (feature: 'rewrite' | 'summarize' | 'translate', _text: string) => {
-      // Trigger the AI panel and select the feature
+      // Open the panel and auto-expand the chosen feature's options.
       setAiPanelCollapsed(false);
-      toast.success(`${feature} feature activated in AI panel`);
+      setFeatureRequest({ feature, key: Date.now() });
     },
     []
   );
@@ -354,6 +358,7 @@ function EditorPageInner() {
             onToggleCollapse={() => setAiPanelCollapsed((p) => !p)}
             isPredicting={isPredicting}
             interactions={aiInteractions}
+            requestedFeature={featureRequest}
           />
         </div>
 

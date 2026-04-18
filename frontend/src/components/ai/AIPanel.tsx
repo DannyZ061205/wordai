@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Editor } from '@tiptap/core';
 import {
   Pencil,
@@ -30,6 +30,10 @@ interface AIPanelProps {
   onToggleCollapse: () => void;
   isPredicting?: boolean;
   interactions?: AIInteraction[];
+  // Fired from the floating bubble menu — when this changes, auto-expand
+  // the corresponding feature's options panel here. `key` disambiguates
+  // repeated clicks on the same feature so the effect always re-runs.
+  requestedFeature?: { feature: AIFeature; key: number } | null;
 }
 
 type Tab = 'tools' | 'history';
@@ -88,7 +92,7 @@ const FEATURES: Array<{
     description: 'Ask AI anything about your selected text',
     icon: <MessageSquare className="w-4 h-4" />,
     color: '#6d6875',
-    needsSelection: false,
+    needsSelection: true,
   },
 ];
 
@@ -127,6 +131,7 @@ export function AIPanel({
   onToggleCollapse,
   isPredicting = false,
   interactions = [],
+  requestedFeature,
 }: AIPanelProps) {
   const [tab, setTab] = useState<Tab>('tools');
   const [activeFeature, setActiveFeature] = useState<AIFeature | null>(null);
@@ -139,17 +144,53 @@ export function AIPanel({
   const { loading, result, interactionId, error, streamAI, accept, reject, clear } =
     useAI(docId);
 
-  const getSelectedText = () => {
-    if (!editor) return '';
-    const { from, to } = editor.state.selection;
-    return editor.state.doc.textBetween(from, to, ' ');
-  };
+  // Track the selected text in state so the panel re-renders whenever the
+  // editor's selection changes (Tiptap doesn't auto-subscribe components
+  // that receive the editor as a prop).
+  const [selectedText, setSelectedText] = useState('');
 
-  const hasSelection = !!getSelectedText();
+  useEffect(() => {
+    if (!editor) {
+      setSelectedText('');
+      return;
+    }
+    const update = () => {
+      const { from, to } = editor.state.selection;
+      setSelectedText(editor.state.doc.textBetween(from, to, ' '));
+    };
+    update();
+    editor.on('selectionUpdate', update);
+    editor.on('transaction', update);
+    return () => {
+      editor.off('selectionUpdate', update);
+      editor.off('transaction', update);
+    };
+  }, [editor]);
+
+  const getSelectedText = () => selectedText;
+  const hasSelection = !!selectedText;
+
+  // Collapse the expanded feature panel when the user deselects text —
+  // otherwise the Run button lingers and looks stale.
+  useEffect(() => {
+    if (!hasSelection && activeFeature && !loading && !result) {
+      setActiveFeature(null);
+    }
+  }, [hasSelection, activeFeature, loading, result]);
+
+  // When the bubble menu requests a feature, expand it here and switch to
+  // the AI Tools tab so the user sees the options appear.
+  useEffect(() => {
+    if (!requestedFeature) return;
+    setTab('tools');
+    setActiveFeature(requestedFeature.feature);
+    clear();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestedFeature?.key]);
 
   const handleRunFeature = async (featureId: AIFeature) => {
     const selectedText = getSelectedText();
-    if (!selectedText && featureId !== 'custom') {
+    if (!selectedText) {
       toast.error('Please select some text first');
       return;
     }
@@ -290,97 +331,143 @@ export function AIPanel({
                 {/* Selection hint */}
                 <div
                   className={clsx(
-                    'px-3 py-2 rounded-lg text-xs transition-colors',
+                    'flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium',
+                    'transition-colors',
                     hasSelection
-                      ? 'bg-[#e8f0fe] text-[#1a73e8] dark:bg-[#1a3a5c]'
-                      : 'bg-[color:var(--border)] text-[color:var(--text-secondary)]'
+                      ? 'bg-[#e8f0fe] text-[#1a73e8] dark:bg-[#1a3a5c]/80 dark:text-[#8ab4f8]'
+                      : 'border border-dashed border-[color:var(--border)] text-[color:var(--text-secondary)] bg-transparent',
                   )}
                 >
+                  <span
+                    className={clsx(
+                      'w-1.5 h-1.5 rounded-full',
+                      hasSelection ? 'bg-[#1a73e8]' : 'bg-[color:var(--text-secondary)]/40',
+                    )}
+                  />
                   {hasSelection
-                    ? `Text selected — ready for AI`
+                    ? 'Text selected — ready for AI'
                     : 'Select text in the editor to use AI features'}
                 </div>
 
-                {/* Feature buttons */}
-                <div className="space-y-1.5">
-                  {FEATURES.map((feature) => (
-                    <div key={feature.id}>
-                      <FeatureButton
-                        icon={feature.icon}
-                        label={feature.label}
-                        description={feature.description}
-                        color={feature.color}
-                        active={activeFeature === feature.id}
-                        disabled={feature.needsSelection && !hasSelection}
-                        onClick={() => {
-                          if (activeFeature === feature.id) {
-                            setActiveFeature(null);
-                          } else {
+                {/* Feature cards */}
+                <div className="space-y-2">
+                  {FEATURES.map((feature) => {
+                    const isActive = activeFeature === feature.id;
+                    const isDisabled = feature.needsSelection && !hasSelection;
+                    const showOptions = isActive && !result && !loading;
+
+                    // Collapsed card — bordered, hoverable, isolated
+                    if (!isActive) {
+                      return (
+                        <FeatureButton
+                          key={feature.id}
+                          icon={feature.icon}
+                          label={feature.label}
+                          description={feature.description}
+                          color={feature.color}
+                          disabled={isDisabled}
+                          onClick={() => {
                             setActiveFeature(feature.id);
                             clear();
-                          }
-                        }}
-                      />
+                          }}
+                        />
+                      );
+                    }
 
-                      {/* Feature options (shown when selected) */}
-                      {activeFeature === feature.id && !result && !loading && (
-                        <div className="mt-2 ml-2 p-3 rounded-lg bg-[color:var(--border)] space-y-2">
-                          {feature.id === 'translate' && (
-                            <div>
-                              <label className="text-xs font-medium block mb-1" style={{ color: 'var(--text-secondary)' }}>
-                                Target language
-                              </label>
-                              <Select
-                                value={translateLang}
-                                onChange={setTranslateLang}
-                                options={['Spanish', 'French', 'German', 'Arabic', 'Chinese', 'Japanese', 'Portuguese', 'Russian', 'Hindi'].map(l => ({ label: l, value: l }))}
-                                size="sm"
-                              />
-                            </div>
-                          )}
+                    // Expanded card — header + options fused into one surface
+                    return (
+                      <div
+                        key={feature.id}
+                        className={clsx(
+                          'rounded-lg border overflow-hidden transition-all',
+                          'border-[#1a73e8]/60 bg-[#e8f0fe]/40 dark:bg-[#1a3a5c]/30',
+                          'shadow-sm',
+                        )}
+                      >
+                        <FeatureButton
+                          icon={feature.icon}
+                          label={feature.label}
+                          description={feature.description}
+                          color={feature.color}
+                          active
+                          bare
+                          onClick={() => setActiveFeature(null)}
+                        />
 
-                          {feature.id === 'rewrite' && (
-                            <div>
-                              <label className="text-xs font-medium block mb-1" style={{ color: 'var(--text-secondary)' }}>
-                                Tone
-                              </label>
-                              <Select
-                                value={rewriteTone}
-                                onChange={setRewriteTone}
-                                options={['professional', 'casual', 'concise', 'academic', 'persuasive', 'creative'].map(t => ({ label: t, value: t }))}
-                                size="sm"
-                              />
-                            </div>
-                          )}
+                        {showOptions && (
+                          <div className="px-3 pb-3 pt-0.5 space-y-3 border-t border-[#1a73e8]/15 bg-[color:var(--bg-surface)]/60">
+                            {feature.id === 'translate' && (
+                              <div className="pt-3">
+                                <label
+                                  className="text-[11px] uppercase tracking-wider font-semibold block mb-1.5"
+                                  style={{ color: 'var(--text-secondary)' }}
+                                >
+                                  Target language
+                                </label>
+                                <Select
+                                  value={translateLang}
+                                  onChange={setTranslateLang}
+                                  options={['Spanish', 'French', 'German', 'Arabic', 'Chinese', 'Japanese', 'Portuguese', 'Russian', 'Hindi'].map((l) => ({ label: l, value: l }))}
+                                  size="sm"
+                                />
+                              </div>
+                            )}
 
-                          {feature.id === 'custom' && (
-                            <div>
-                              <label className="text-xs font-medium block mb-1" style={{ color: 'var(--text-secondary)' }}>
-                                Your instruction
-                              </label>
-                              <textarea
-                                value={customPrompt}
-                                onChange={(e) => setCustomPrompt(e.target.value)}
-                                placeholder="e.g. Make this more engaging..."
-                                className="w-full text-xs px-2 py-1.5 rounded border bg-[color:var(--bg-surface)] text-[color:var(--text-primary)] border-[color:var(--border)] focus:outline-none focus:ring-1 focus:ring-[#1a73e8] resize-none"
-                                rows={3}
-                              />
-                            </div>
-                          )}
+                            {feature.id === 'rewrite' && (
+                              <div className="pt-3">
+                                <label
+                                  className="text-[11px] uppercase tracking-wider font-semibold block mb-1.5"
+                                  style={{ color: 'var(--text-secondary)' }}
+                                >
+                                  Tone
+                                </label>
+                                <Select
+                                  value={rewriteTone}
+                                  onChange={setRewriteTone}
+                                  options={['professional', 'casual', 'concise', 'academic', 'persuasive', 'creative'].map((t) => ({ label: t, value: t }))}
+                                  size="sm"
+                                />
+                              </div>
+                            )}
 
-                          <Button
-                            size="sm"
-                            fullWidth
-                            onClick={() => handleRunFeature(feature.id)}
-                            loading={loading}
-                            icon={<Sparkles className="w-3.5 h-3.5" />}
-                          >
-                            Run {feature.label}
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                            {feature.id === 'custom' && (
+                              <div className="pt-3">
+                                <label
+                                  className="text-[11px] uppercase tracking-wider font-semibold block mb-1.5"
+                                  style={{ color: 'var(--text-secondary)' }}
+                                >
+                                  Your instruction
+                                </label>
+                                <textarea
+                                  value={customPrompt}
+                                  onChange={(e) => setCustomPrompt(e.target.value)}
+                                  placeholder="e.g. Make this more engaging..."
+                                  className={clsx(
+                                    'w-full text-xs px-2.5 py-2 rounded-md border leading-relaxed',
+                                    'bg-[color:var(--bg-surface)] text-[color:var(--text-primary)]',
+                                    'border-[color:var(--border)]',
+                                    'focus:outline-none focus:ring-2 focus:ring-[#1a73e8]/60 focus:border-[#1a73e8]',
+                                    'resize-none',
+                                  )}
+                                  rows={3}
+                                />
+                              </div>
+                            )}
+
+                            <Button
+                              size="sm"
+                              fullWidth
+                              onClick={() => handleRunFeature(feature.id)}
+                              loading={loading}
+                              icon={<Sparkles className="w-3.5 h-3.5" />}
+                            >
+                              Run {feature.label}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* Result card */}

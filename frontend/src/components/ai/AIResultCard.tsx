@@ -188,7 +188,9 @@ export function AIResultCard({
         </div>
       </div>
 
-      {/* Content */}
+      {/* Content — skip entirely when nothing to show (e.g. after acceptance
+          when only the "Suggestion applied / Undo" banner remains). */}
+      {(result || loading || mode !== 'preview') && (
       <div className="p-3">
         {mode === 'preview' && (
           <div className="space-y-3">
@@ -258,7 +260,7 @@ export function AIResultCard({
           />
         )}
 
-        {mode === 'partial' && (
+        {mode === 'partial' && result && (
           <ul className="max-h-[300px] overflow-y-auto space-y-1.5 pr-0.5">
             {segments.map((seg, idx) => {
               const checked = checkedSegments.has(idx);
@@ -300,6 +302,7 @@ export function AIResultCard({
           </ul>
         )}
       </div>
+      )}
 
       {/* Actions */}
       {!loading && result && (

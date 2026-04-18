@@ -188,7 +188,7 @@ export function RichTextEditor({
                   </div>
                 </div>
                 {ghostText.trim() && (
-                  <div className="mb-3 rounded-xl border border-[var(--border)] bg-white p-3 text-[var(--text-primary)] text-sm leading-5">
+                  <div className="mb-3 rounded-xl border border-[var(--border)] bg-[var(--bg-app)] p-3 text-[var(--text-primary)] text-sm leading-5">
                     {ghostText.trim()}
                   </div>
                 )}

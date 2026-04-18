@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Sparkles, ExternalLink, Eye, Edit3 } from 'lucide-react';
 import { Spinner } from '../components/shared/Spinner';
@@ -13,9 +13,11 @@ import Highlight from '@tiptap/extension-highlight';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import Link2 from '@tiptap/extension-link';
-import { EditorProvider } from '../components/editor/EditorContext';
+import { EditorProvider, useEditorContext } from '../components/editor/EditorContext';
 import { RichTextEditor } from '../components/editor/RichTextEditor';
+import { AIPanel } from '../components/ai/AIPanel';
 import { useRealtimeSync } from '../hooks/useRealtimeSync';
+import { AIFeature } from '../types';
 
 interface SharedDoc extends Document {
   role: string;
@@ -156,15 +158,9 @@ export function SharedDocPage() {
           </div>
         ) : doc ? (
           doc.role === 'editor' ? (
-            // Editor role: use full Yjs-backed RichTextEditor so changes sync in real time
+            // Editor role: full editor + AI Panel, same as the main app.
             <EditorProvider>
-              <RichTextEditor
-                docId={doc.id}
-                initialContent={doc.content}
-                editable={true}
-                shareToken={token}
-                onContentChange={() => {}}
-              />
+              <SharedEditorView doc={doc} shareToken={token!} />
             </EditorProvider>
           ) : (
             // Viewer role: read-only but still subscribes to live updates
@@ -172,6 +168,49 @@ export function SharedDocPage() {
           )
         ) : null}
       </main>
+    </div>
+  );
+}
+
+// Inner component so it can consume EditorContext populated by RichTextEditor.
+function SharedEditorView({ doc, shareToken }: { doc: SharedDoc; shareToken: string }) {
+  const { editor } = useEditorContext();
+  const [aiPanelCollapsed, setAiPanelCollapsed] = useState(false);
+  const [featureRequest, setFeatureRequest] = useState<{
+    feature: AIFeature;
+    key: number;
+  } | null>(null);
+
+  const handleAIAction = useCallback(
+    (feature: 'rewrite' | 'summarize' | 'translate', _text: string) => {
+      setAiPanelCollapsed(false);
+      setFeatureRequest({ feature, key: Date.now() });
+    },
+    [],
+  );
+
+  return (
+    <div className="flex h-[calc(100vh-60px)] min-h-0">
+      <div className="relative flex-shrink-0">
+        <AIPanel
+          editor={editor}
+          docId={doc.id}
+          isCollapsed={aiPanelCollapsed}
+          onToggleCollapse={() => setAiPanelCollapsed((p) => !p)}
+          shareToken={shareToken}
+          requestedFeature={featureRequest}
+        />
+      </div>
+      <div className="flex-1 min-w-0 overflow-hidden">
+        <RichTextEditor
+          docId={doc.id}
+          initialContent={doc.content}
+          editable={true}
+          shareToken={shareToken}
+          onContentChange={() => {}}
+          onAIAction={handleAIAction}
+        />
+      </div>
     </div>
   );
 }

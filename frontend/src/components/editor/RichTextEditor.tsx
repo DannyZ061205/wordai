@@ -90,7 +90,11 @@ export function RichTextEditor({
   useAutoSave(docId, content, shareToken);
 
   // Ghost text — rendered inline via ProseMirror decoration (GhostTextExtension)
-  const { hasGhostText, isPredicting, ghostText, cancelStream } = useGhostText(editor, docId);
+  const { hasGhostText, isPredicting, ghostText, cancelStream } = useGhostText(
+    editor,
+    docId,
+    shareToken,
+  );
 
   // Anchor the "AI continuation" card to the cursor Y-position, placed to the
   // right of the page. Falls back to docked bottom-right when there isn't

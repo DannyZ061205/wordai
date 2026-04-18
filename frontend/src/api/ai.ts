@@ -1,14 +1,26 @@
 import { AIRequest, AIInteraction } from '../types';
 
-export const aiApi = {
-  async stream(docId: string, request: AIRequest): Promise<ReadableStream<Uint8Array>> {
-    const token = localStorage.getItem('access_token');
+function buildUrl(path: string, shareToken?: string): string {
+  if (!shareToken) return path;
+  return `${path}?share_token=${encodeURIComponent(shareToken)}`;
+}
 
-    const response = await fetch(`/api/ai/${docId}/stream`, {
+function authHeader(): Record<string, string> {
+  const token = localStorage.getItem('access_token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+export const aiApi = {
+  async stream(
+    docId: string,
+    request: AIRequest,
+    shareToken?: string,
+  ): Promise<ReadableStream<Uint8Array>> {
+    const response = await fetch(buildUrl(`/api/ai/${docId}/stream`, shareToken), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...authHeader(),
       },
       body: JSON.stringify(request),
     });
@@ -28,27 +40,25 @@ export const aiApi = {
     docId: string,
     interactionId: string,
     accepted: boolean,
-    applied_text?: string
+    applied_text?: string,
+    shareToken?: string,
   ): Promise<void> {
-    const token = localStorage.getItem('access_token');
-
-    await fetch(`/api/ai/${docId}/interactions/${interactionId}/outcome`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    await fetch(
+      buildUrl(`/api/ai/${docId}/interactions/${interactionId}/outcome`, shareToken),
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeader(),
+        },
+        body: JSON.stringify({ accepted, applied_text }),
       },
-      body: JSON.stringify({ accepted, applied_text }),
-    });
+    );
   },
 
-  async getHistory(docId: string): Promise<AIInteraction[]> {
-    const token = localStorage.getItem('access_token');
-
-    const response = await fetch(`/api/ai/${docId}/history`, {
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
+  async getHistory(docId: string, shareToken?: string): Promise<AIInteraction[]> {
+    const response = await fetch(buildUrl(`/api/ai/${docId}/history`, shareToken), {
+      headers: { ...authHeader() },
     });
 
     if (!response.ok) {
@@ -70,7 +80,7 @@ export interface SSEChunk {
 }
 
 export async function* parseSSEStream(
-  stream: ReadableStream<Uint8Array>
+  stream: ReadableStream<Uint8Array>,
 ): AsyncGenerator<SSEChunk> {
   const reader = stream.getReader();
   const decoder = new TextDecoder();

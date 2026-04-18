@@ -13,7 +13,7 @@ interface UseAIResult {
   clear: () => void;
 }
 
-export function useAI(docId: string): UseAIResult {
+export function useAI(docId: string, shareToken?: string): UseAIResult {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState('');
   const [interactionId, setInteractionId] = useState<string | null>(null);
@@ -33,7 +33,7 @@ export function useAI(docId: string): UseAIResult {
       setError(null);
 
       try {
-        const stream = await aiApi.stream(docId, request);
+        const stream = await aiApi.stream(docId, request, shareToken);
         const generator = parseSSEStream(stream);
 
         for await (const chunk of generator) {
@@ -59,30 +59,30 @@ export function useAI(docId: string): UseAIResult {
         setLoading(false);
       }
     },
-    [docId]
+    [docId, shareToken]
   );
 
   const accept = useCallback(
     async (appliedText?: string) => {
       if (!interactionId) return;
       try {
-        await aiApi.recordOutcome(docId, interactionId, true, appliedText);
+        await aiApi.recordOutcome(docId, interactionId, true, appliedText, shareToken);
       } catch {
         // non-critical — don't surface to user
       }
     },
-    [docId, interactionId]
+    [docId, interactionId, shareToken]
   );
 
   const reject = useCallback(async () => {
     if (!interactionId) return;
     try {
-      await aiApi.recordOutcome(docId, interactionId, false);
+      await aiApi.recordOutcome(docId, interactionId, false, undefined, shareToken);
     } catch {
       // non-critical
     }
     clear();
-  }, [docId, interactionId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [docId, interactionId, shareToken]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const clear = useCallback(() => {
     if (abortRef.current) {

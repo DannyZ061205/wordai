@@ -1,17 +1,76 @@
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import StreamingResponse
 
 from app.ai.models import AIInteractionResponse, AIInteractionUpdate, AIRequest
 from app.ai.service import record_interaction_outcome, stream_ai_response
-from app.documents.service import _get_user_role
+from app.auth.service import decode_token
+from app.documents.service import _get_user_role, get_doc_via_share_link
 from app.middleware.auth import get_current_user
 from app.storage.json_store import store
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
+
+
+def _resolve_actor(
+    request: Request,
+    doc_id: str,
+    share_token: Optional[str],
+) -> Tuple[str, str]:
+    """
+    Resolve (user_id, role) for an AI call.
+
+    Accepts either a JWT (Authorization: Bearer ...) or a share_token query
+    parameter. Returns 401/403 on auth/access failures. Role must be at
+    least "editor".
+    """
+    _rank = {"viewer": 0, "editor": 1, "owner": 2}
+
+    # 1) Try JWT
+    auth = request.headers.get("Authorization") or request.headers.get("authorization")
+    if auth and auth.lower().startswith("bearer "):
+        token = auth.split(None, 1)[1].strip()
+        try:
+            payload = decode_token(token)
+            if payload.get("type", "access") == "access":
+                uid = payload.get("sub", "")
+                user = store.get_user(uid)
+                if user:
+                    role = _get_user_role(doc_id, uid)
+                    if role is None:
+                        raise HTTPException(status.HTTP_403_FORBIDDEN, "Access denied")
+                    if _rank[role] < _rank["editor"]:
+                        raise HTTPException(
+                            status.HTTP_403_FORBIDDEN,
+                            "Editor or owner role required to use AI features",
+                        )
+                    return uid, role
+        except HTTPException:
+            raise
+        except Exception:
+            pass  # fall through to share-token path
+
+    # 2) Try share-link token
+    if share_token:
+        link_doc = get_doc_via_share_link(share_token, None)
+        if link_doc and link_doc["id"] == doc_id:
+            link_role = link_doc.get("role")
+            if link_role and _rank.get(link_role, -1) >= _rank["editor"]:
+                # Stable pseudo user-id for this guest session
+                return f"guest_{share_token[:8]}", link_role
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                "This share link is view-only",
+            )
+
+    raise HTTPException(
+        status.HTTP_401_UNAUTHORIZED,
+        "Authentication required",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
 
 
 def _require_editor_plus(doc_id: str, user_id: str) -> None:
@@ -34,20 +93,19 @@ def _require_editor_plus(doc_id: str, user_id: str) -> None:
 async def ai_stream(
     doc_id: str,
     request: AIRequest,
-    current_user: dict = Depends(get_current_user),
+    req: Request,
+    share_token: Optional[str] = Query(None),
 ):
     """
     Stream an AI response using Server-Sent Events.
 
-    Each SSE event has the shape:
-        data: {"chunk": "...", "done": false}
-        ...
-        data: {"chunk": "", "done": true, "interaction_id": "<uuid>"}
+    Accepts either JWT (Authorization header) or a share-link token
+    (share_token query param, editor role only).
     """
-    _require_editor_plus(doc_id, current_user["id"])
+    user_id, _ = _resolve_actor(req, doc_id, share_token)
 
     async def event_generator():
-        async for chunk in stream_ai_response(request, doc_id, current_user["id"]):
+        async for chunk in stream_ai_response(request, doc_id, user_id):
             yield chunk
 
     return StreamingResponse(
@@ -65,12 +123,11 @@ async def record_outcome(
     doc_id: str,
     interaction_id: str,
     body: AIInteractionUpdate,
-    current_user: dict = Depends(get_current_user),
+    req: Request,
+    share_token: Optional[str] = Query(None),
 ):
     """Record whether the user accepted or rejected the AI suggestion."""
-    role = _get_user_role(doc_id, current_user["id"])
-    if role is None:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    _resolve_actor(req, doc_id, share_token)  # raises on failure
 
     interaction = store.get_ai_interaction(interaction_id)
     if not interaction or interaction.get("doc_id") != doc_id:
@@ -92,15 +149,11 @@ async def record_outcome(
 @router.get("/{doc_id}/history", response_model=List[AIInteractionResponse])
 async def ai_history(
     doc_id: str,
-    current_user: dict = Depends(get_current_user),
+    req: Request,
+    share_token: Optional[str] = Query(None),
 ):
     """Return the AI interaction history for a document."""
-    role = _get_user_role(doc_id, current_user["id"])
-    if role is None:
-        doc = store.get_document(doc_id)
-        if not doc:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    _resolve_actor(req, doc_id, share_token)  # raises on failure
 
     interactions = store.get_ai_history(doc_id)
     return [

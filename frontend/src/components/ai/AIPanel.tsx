@@ -30,6 +30,7 @@ interface AIPanelProps {
   onToggleCollapse: () => void;
   isPredicting?: boolean;
   interactions?: AIInteraction[];
+  shareToken?: string;
   // Fired from the floating bubble menu — when this changes, auto-expand
   // the corresponding feature's options panel here. `key` disambiguates
   // repeated clicks on the same feature so the effect always re-runs.
@@ -140,6 +141,7 @@ export function AIPanel({
   onToggleCollapse,
   isPredicting = false,
   interactions = [],
+  shareToken,
   requestedFeature,
 }: AIPanelProps) {
   const [tab, setTab] = useState<Tab>('tools');
@@ -151,7 +153,7 @@ export function AIPanel({
   const [justAccepted, setJustAccepted] = useState(false);
 
   const { loading, result, interactionId, error, streamAI, accept, reject, clear } =
-    useAI(docId);
+    useAI(docId, shareToken);
 
   // Track the selected text in state so the panel re-renders whenever the
   // editor's selection changes (Tiptap doesn't auto-subscribe components

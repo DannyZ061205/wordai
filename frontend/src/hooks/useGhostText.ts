@@ -17,7 +17,8 @@ interface UseGhostTextResult {
 
 export function useGhostText(
   editor: Editor | null,
-  docId: string
+  docId: string,
+  shareToken?: string,
 ): UseGhostTextResult {
   // Mirror plugin state into React so buttons/hints re-render correctly
   const [hasGhostText, setHasGhostText] = useState(false);
@@ -97,12 +98,16 @@ export function useGhostText(
     };
 
     try {
-      const stream = await aiApi.stream(docId, {
-        feature: 'autocomplete',
-        selected_text: '',
-        context_before: textBefore,
-        context_after: textAfter,
-      });
+      const stream = await aiApi.stream(
+        docId,
+        {
+          feature: 'autocomplete',
+          selected_text: '',
+          context_before: textBefore,
+          context_after: textAfter,
+        },
+        shareToken,
+      );
 
       const generator = parseSSEStream(stream);
 

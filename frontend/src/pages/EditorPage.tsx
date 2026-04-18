@@ -11,7 +11,10 @@ import {
   CloudOff,
   Loader2,
   Settings,
+  Sun,
+  Moon,
 } from 'lucide-react';
+import { useThemeStore } from '../store/theme';
 import toast from 'react-hot-toast';
 import { clsx } from 'clsx';
 import { EditorProvider, useEditorContext } from '../components/editor/EditorContext';
@@ -23,7 +26,6 @@ import { AIHistoryModal } from '../components/ai/AIHistoryModal';
 import { AISettingsModal } from '../components/ai/AISettingsModal';
 import { AISetupBanner } from '../components/ai/AISetupBanner';
 import { PresenceBar } from '../components/collaboration/PresenceBar';
-import { ThemeToggle } from '../components/shared/ThemeToggle';
 import { Tooltip } from '../components/shared/Tooltip';
 import { Avatar } from '../components/shared/Avatar';
 import { Spinner } from '../components/shared/Spinner';
@@ -286,50 +288,21 @@ function EditorPageInner() {
           {/* Collaborator presence */}
           <PresenceBar collaborators={collaborators} />
 
-          {/* Grouped icon actions */}
-          <div
-            className="flex items-center gap-0.5 px-1 py-1 rounded-lg"
-            style={{ background: 'var(--border)' }}
-          >
-            <Tooltip content="AI history">
-              <button
-                onClick={() => setAiHistoryOpen(true)}
-                className="p-1.5 rounded-md hover:bg-[color:var(--bg-surface)] transition-colors"
-                aria-label="AI interaction history"
-              >
-                <Sparkles className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
-              </button>
-            </Tooltip>
-
-            <Tooltip content="Version history">
-              <button
-                onClick={() => setVersionHistoryOpen(true)}
-                className="p-1.5 rounded-md hover:bg-[color:var(--bg-surface)] transition-colors"
-                aria-label="Version history"
-              >
-                <Clock className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
-              </button>
-            </Tooltip>
-
-            <Tooltip content="AI settings">
-              <button
-                onClick={() => setAiSettingsOpen(true)}
-                className="p-1.5 rounded-md hover:bg-[color:var(--bg-surface)] transition-colors"
-                aria-label="AI settings"
-              >
-                <Settings className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
-              </button>
-            </Tooltip>
-
-            <ThemeToggle />
-          </div>
+          {/* Grouped icon actions — floating pill */}
+          <HeaderIconGroup
+            onAiHistory={() => setAiHistoryOpen(true)}
+            onVersionHistory={() => setVersionHistoryOpen(true)}
+            onAiSettings={() => setAiSettingsOpen(true)}
+          />
 
           {/* Share */}
           <button
             onClick={() => setShareOpen(true)}
             className={clsx(
-              'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium',
-              'bg-[#1a73e8] text-white hover:bg-[#1557b0] transition-colors shadow-sm'
+              'flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium',
+              'bg-[#1a73e8] text-white hover:bg-[#1557b0] active:bg-[#13509a]',
+              'shadow-sm hover:shadow-md transition-all duration-150',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1a73e8]/40 focus-visible:ring-offset-2',
             )}
             aria-label="Share document"
           >
@@ -410,5 +383,72 @@ export function EditorPage() {
     <EditorProvider>
       <EditorPageInner />
     </EditorProvider>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────
+// Header icon group: AI history, version history, AI settings,
+// theme toggle — all inside a single floating pill.
+// ────────────────────────────────────────────────────────────────
+
+interface HeaderIconButtonProps {
+  onClick: () => void;
+  label: string;
+  children: React.ReactNode;
+}
+
+function HeaderIconButton({ onClick, label, children }: HeaderIconButtonProps) {
+  return (
+    <Tooltip content={label}>
+      <button
+        onClick={onClick}
+        aria-label={label}
+        className={clsx(
+          'p-1.5 rounded-md transition-all duration-150',
+          'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]',
+          'hover:bg-[color:var(--border)]/60 active:bg-[color:var(--border)]',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1a73e8]/40',
+        )}
+      >
+        {children}
+      </button>
+    </Tooltip>
+  );
+}
+
+function HeaderIconGroup({
+  onAiHistory,
+  onVersionHistory,
+  onAiSettings,
+}: {
+  onAiHistory: () => void;
+  onVersionHistory: () => void;
+  onAiSettings: () => void;
+}) {
+  const { theme, toggle } = useThemeStore();
+  return (
+    <div
+      className={clsx(
+        'flex items-center gap-0.5 p-1 rounded-full',
+        'bg-[color:var(--bg-surface)] border border-[color:var(--border)]',
+        'shadow-sm',
+      )}
+    >
+      <HeaderIconButton onClick={onAiHistory} label="AI history">
+        <Sparkles className="w-4 h-4" />
+      </HeaderIconButton>
+      <HeaderIconButton onClick={onVersionHistory} label="Version history">
+        <Clock className="w-4 h-4" />
+      </HeaderIconButton>
+      <HeaderIconButton onClick={onAiSettings} label="AI settings">
+        <Settings className="w-4 h-4" />
+      </HeaderIconButton>
+      <HeaderIconButton
+        onClick={toggle}
+        label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+      >
+        {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+      </HeaderIconButton>
+    </div>
   );
 }

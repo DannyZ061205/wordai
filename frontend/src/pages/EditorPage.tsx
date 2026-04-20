@@ -25,7 +25,6 @@ import { AIPanel } from '../components/ai/AIPanel';
 import { AIHistoryModal } from '../components/ai/AIHistoryModal';
 import { AISettingsModal } from '../components/ai/AISettingsModal';
 import { AISetupBanner } from '../components/ai/AISetupBanner';
-import { PresenceBar } from '../components/collaboration/PresenceBar';
 import { Tooltip } from '../components/shared/Tooltip';
 import { Avatar } from '../components/shared/Avatar';
 import { Spinner } from '../components/shared/Spinner';
@@ -283,11 +282,8 @@ function EditorPageInner() {
           <SaveStatusIndicator />
         </div>
 
-        {/* Right: collaborators + actions */}
+        {/* Right: actions */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Collaborator presence */}
-          <PresenceBar collaborators={collaborators} />
-
           {/* Grouped icon actions — floating pill */}
           <HeaderIconGroup
             onAiHistory={() => setAiHistoryOpen(true)}

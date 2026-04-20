@@ -10,7 +10,7 @@ echo "🚀 Starting wordAI..."
 if [ ! -f "$ROOT/backend/.env" ]; then
   echo "⚠️  backend/.env not found. Copying from .env.example ..."
   cp "$ROOT/backend/.env.example" "$ROOT/backend/.env"
-  echo "    Please fill in DEEPSEEK_API_KEY and JWT_SECRET_KEY in backend/.env"
+  echo "    Please set JWT_SECRET_KEY in backend/.env (AI keys are configured per-user in-app)"
 fi
 
 # Backend

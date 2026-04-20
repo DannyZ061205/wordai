@@ -80,9 +80,9 @@ _deepseek = _DeepSeekClient()
 def _get_client_config(user_id: str) -> tuple[str, str, str, str]:
     """Return (api_key, base_url, model, provider) for the given user.
 
-    Priority:
-      1. User's saved AI settings (provider + key they configured)
-      2. DEEPSEEK_API_KEY env var as system-wide fallback (deepseek)
+    Each user must configure their own provider via Settings → AI Configuration.
+    If no settings are found, returns an empty key so the streaming path can
+    surface a clear "configure AI" error to the caller.
     """
     user_settings = store.get_ai_settings(user_id)
     if user_settings and user_settings.get("api_key"):
@@ -92,8 +92,8 @@ def _get_client_config(user_id: str) -> tuple[str, str, str, str]:
             user_settings.get("model", "deepseek-chat"),
             user_settings.get("provider", "deepseek"),
         )
-    # Fall back to env default
-    return settings.deepseek_api_key or "", "https://api.deepseek.com", "deepseek-chat", "deepseek"
+    # No per-user settings — let the caller raise a user-visible error.
+    return "", "https://api.deepseek.com", "deepseek-chat", "deepseek"
 
 
 # ---------------------------------------------------------------------------

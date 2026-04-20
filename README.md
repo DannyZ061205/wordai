@@ -33,7 +33,7 @@ cd wordai
 cd backend
 python3 -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env          # fill in JWT_SECRET_KEY (DEEPSEEK_API_KEY is optional — see below)
+cp .env.example .env          # set JWT_SECRET_KEY (AI keys are configured per-user in-app)
 uvicorn app.main:app --reload --port 8000
 ```
 
@@ -70,11 +70,12 @@ Copy `backend/.env.example` to `backend/.env` and fill in:
 | Variable | Required? | Description |
 |----------|-----------|-------------|
 | `JWT_SECRET_KEY` | **Yes** | Random secret for signing JWTs — change from the default before any real use |
-| `DEEPSEEK_API_KEY` | Optional | System-wide DeepSeek fallback. Most users skip this and configure their own provider (OpenAI / Anthropic / Grok / DeepSeek / custom) at runtime via **Settings → AI Configuration** |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Optional | Default `30` |
 | `REFRESH_TOKEN_EXPIRE_DAYS` | Optional | Default `7` |
 | `DATA_DIR` | Optional | Path for JSON data files (default `./data`) |
 | `CORS_ORIGINS` | Optional | Comma-separated allowed origins (default covers `localhost:5173` + `:5174`) |
+
+> **AI keys are NOT environment variables.** Each user configures their own provider (DeepSeek / OpenAI / Anthropic / Grok / custom) and API key from **Settings → AI Configuration** inside the app. Keys are stored per-user in `backend/data/ai_settings.json`.
 
 ---
 

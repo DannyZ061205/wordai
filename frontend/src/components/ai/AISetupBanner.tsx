@@ -1,15 +1,31 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Zap, ArrowRight } from 'lucide-react';
 import { clsx } from 'clsx';
+import { settingsApi } from '../../api/settings';
 
 const BANNER_DISMISSED_KEY = 'ai_banner_dismissed';
 
 interface AISetupBannerProps {
   onConfigureClick: () => void;
+  /**
+   * External signal that the user has just configured AI (e.g. returned
+   * from the settings modal after saving). When true, the banner hides
+   * immediately without waiting for a fresh fetch.
+   */
+  configured?: boolean;
 }
 
-export function AISetupBanner({ onConfigureClick }: AISetupBannerProps) {
+/**
+ * Informational banner urging first-time users to configure an AI provider.
+ *
+ * Hides itself automatically once the user has saved their own API key in
+ * Settings. There is no system-wide fallback — every user must configure
+ * their own provider — so visibility reduces to a single check: is the
+ * user configured?
+ */
+export function AISetupBanner({ onConfigureClick, configured = false }: AISetupBannerProps) {
   const [visible, setVisible] = useState(false);
+  const [shouldShow, setShouldShow] = useState(false);
   const [dismissed, setDismissed] = useState(() => {
     try {
       return localStorage.getItem(BANNER_DISMISSED_KEY) === 'true';
@@ -19,20 +35,41 @@ export function AISetupBanner({ onConfigureClick }: AISetupBannerProps) {
   });
   const mountedRef = useRef(false);
 
-  // Slide-in on mount using a small delay so the CSS transition fires
+  // Decide whether to show the banner by asking the backend whether AI is
+  // actually available (per-user key OR system fallback).
   useEffect(() => {
     if (dismissed) return;
+    let cancelled = false;
+    settingsApi
+      .getAI()
+      .then((s) => {
+        if (cancelled) return;
+        const aiAvailable = Boolean(s?.is_configured);
+        setShouldShow(!aiAvailable);
+      })
+      .catch(() => {
+        // If we can't reach the settings endpoint, fall back to showing the
+        // banner — that's the safer "nudge the user" default.
+        if (!cancelled) setShouldShow(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dismissed]);
+
+  // Slide-in animation once we know we should show the banner
+  useEffect(() => {
+    if (dismissed || !shouldShow) return;
     const timer = setTimeout(() => {
       if (!mountedRef.current) return;
       setVisible(true);
     }, 50);
     mountedRef.current = true;
     return () => clearTimeout(timer);
-  }, [dismissed]);
+  }, [dismissed, shouldShow]);
 
   const handleDismiss = () => {
     setVisible(false);
-    // Wait for the slide-out animation before fully hiding
     setTimeout(() => {
       setDismissed(true);
       try {
@@ -43,7 +80,7 @@ export function AISetupBanner({ onConfigureClick }: AISetupBannerProps) {
     }, 300);
   };
 
-  if (dismissed) return null;
+  if (dismissed || configured || !shouldShow) return null;
 
   return (
     <div

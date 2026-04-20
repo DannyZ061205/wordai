@@ -370,6 +370,7 @@ function EditorPageInner() {
         isOpen={aiSettingsOpen}
         onClose={() => setAiSettingsOpen(false)}
         onSaved={() => setAiConfigured(true)}
+        onCleared={() => setAiConfigured(false)}
       />
     </div>
   );

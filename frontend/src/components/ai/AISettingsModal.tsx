@@ -22,7 +22,10 @@ import { settingsApi, ProviderPreset, AISettingsUpdate } from '../../api/setting
 interface AISettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Called after the user successfully saves a key. */
   onSaved?: () => void;
+  /** Called after the user successfully clears their saved key. */
+  onCleared?: () => void;
 }
 
 type KeyStatus = 'idle' | 'testing' | 'ok' | 'error';
@@ -196,7 +199,7 @@ function KeyStatusIndicator({ status, message }: { status: KeyStatus; message: s
 
 // ── Main component ──────────────────────────────────────────────────────────
 
-export function AISettingsModal({ isOpen, onClose, onSaved }: AISettingsModalProps) {
+export function AISettingsModal({ isOpen, onClose, onSaved, onCleared }: AISettingsModalProps) {
   const [providers, setProviders] = useState<ProviderPreset[]>(FALLBACK_PRESETS);
   const [selectedProviderId, setSelectedProviderId] = useState<string>('deepseek');
   const [apiKey, setApiKey] = useState('');
@@ -398,11 +401,31 @@ export function AISettingsModal({ isOpen, onClose, onSaved }: AISettingsModalPro
     }
   };
 
-  const handleClearKey = () => {
-    setApiKey('');
-    setShowKey(false);
-    setKeyStatus('idle');
-    setKeyStatusMessage('');
+  const handleClearKey = async () => {
+    // Case 1: user is typing a new key but hasn't saved → just clear the input.
+    if (!initialConfigured) {
+      setApiKey('');
+      setShowKey(false);
+      setKeyStatus('idle');
+      setKeyStatusMessage('');
+      return;
+    }
+
+    // Case 2: there IS a saved key on the backend → delete it for real.
+    try {
+      await settingsApi.deleteAI();
+      setApiKey('');
+      setShowKey(false);
+      setKeyStatus('idle');
+      setKeyStatusMessage('');
+      setInitialConfigured(false);
+      setInitialProviderId('');
+      toast.success('API key cleared');
+      // Notify the parent so the setup banner reappears immediately.
+      onCleared?.();
+    } catch {
+      toast.error('Failed to clear API key');
+    }
   };
 
   const handleModelChange = (value: string) => {

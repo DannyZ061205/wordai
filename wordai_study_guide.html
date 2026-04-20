@@ -1,0 +1,1774 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>wordAI — Product Manager Study Guide</title>
+
+<script>
+MathJax = {
+  tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']], processEscapes: true },
+  options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'] }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" id="hljs-light">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" id="hljs-dark" disabled>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/typescript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Merriweather:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --text-primary: #1a1a2e;
+  --text-secondary: #4a4a6a;
+  --accent-blue: #2563eb;
+  --accent-green: #059669;
+  --accent-orange: #d97706;
+  --accent-purple: #7c3aed;
+  --accent-red: #dc2626;
+  --accent-teal: #0891b2;
+  --accent-amber: #b45309;
+  --accent-gray: #64748b;
+  --border: #e2e8f0;
+  --sidebar-bg: #f1f5f9;
+  --code-bg: #f6f8fa;
+}
+html[data-theme="dark"] {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --accent-blue: #60a5fa;
+  --accent-green: #34d399;
+  --accent-orange: #fbbf24;
+  --accent-purple: #a78bfa;
+  --accent-red: #f87171;
+  --accent-teal: #22d3ee;
+  --accent-amber: #fbbf24;
+  --accent-gray: #94a3b8;
+  --border: #334155;
+  --sidebar-bg: #1e293b;
+  --code-bg: #0b1220;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.7;
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Progress bar */
+.progress-bar {
+  position: fixed; top: 0; left: 0; height: 3px;
+  width: 0%;
+  background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+  z-index: 1000;
+  transition: width 80ms linear;
+}
+
+/* Layout */
+.layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  min-height: 100vh;
+}
+aside.sidebar {
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--border);
+  padding: 24px 18px;
+  position: sticky; top: 0; align-self: start;
+  height: 100vh; overflow-y: auto;
+}
+main.content {
+  max-width: 840px;
+  margin: 0 auto;
+  padding: 48px 40px 120px;
+  width: 100%;
+}
+
+/* Sidebar */
+.brand {
+  font-weight: 700; font-size: 18px;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+  display: flex; align-items: center; gap: 8px;
+}
+.brand-sub { font-size: 12px; color: var(--text-secondary); margin-bottom: 18px; }
+.toc-search {
+  width: 100%; padding: 8px 10px; margin-bottom: 14px;
+  border-radius: 8px; border: 1px solid var(--border);
+  background: var(--bg-primary); color: var(--text-primary);
+  font-size: 13px; font-family: inherit;
+}
+.toc-header {
+  font-size: 11px; font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase; letter-spacing: 0.08em;
+  margin: 14px 0 6px;
+}
+.toc ul { list-style: none; margin: 0; padding: 0; }
+.toc li { margin: 2px 0; }
+.toc a {
+  display: block; padding: 6px 10px;
+  color: var(--text-secondary); text-decoration: none;
+  border-radius: 6px; font-size: 13px;
+  border-left: 2px solid transparent;
+  transition: all 120ms ease;
+}
+.toc a:hover { background: var(--bg-primary); color: var(--text-primary); }
+.toc a.active {
+  color: var(--accent-blue);
+  border-left-color: var(--accent-blue);
+  background: var(--bg-primary);
+  font-weight: 600;
+}
+.toc a .check { color: var(--accent-green); margin-right: 4px; opacity: 0; transition: opacity 120ms; }
+.toc a.visited .check { opacity: 1; }
+
+.theme-toggle {
+  position: fixed; top: 14px; right: 18px;
+  background: var(--bg-secondary); border: 1px solid var(--border);
+  color: var(--text-primary);
+  width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 16px; z-index: 500;
+}
+.theme-toggle:hover { background: var(--sidebar-bg); }
+
+/* Hero */
+h1.hero-title {
+  font-size: 42px; line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin: 0 0 10px;
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.hero-sub { font-size: 17px; color: var(--text-secondary); margin-bottom: 36px; }
+.hero-meta { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--text-secondary); margin-bottom: 26px; }
+.hero-meta span { padding: 4px 10px; background: var(--bg-secondary); border-radius: 999px; border: 1px solid var(--border); }
+
+/* Global section styling */
+section.global {
+  margin: 44px 0;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+section.global h2 {
+  font-size: 28px; font-weight: 700;
+  margin: 0 0 18px;
+  letter-spacing: -0.015em;
+}
+section.global h3 {
+  font-size: 19px; margin: 22px 0 10px;
+  font-weight: 600;
+}
+p { margin: 10px 0; }
+
+/* Callout boxes */
+.callout {
+  border-left: 4px solid var(--callout-color);
+  background: color-mix(in srgb, var(--callout-color) 8%, var(--bg-primary));
+  border-radius: 0 10px 10px 0;
+  padding: 14px 18px;
+  margin: 18px 0;
+}
+.callout-header {
+  font-weight: 700; font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--callout-color);
+  margin-bottom: 8px;
+  display: flex; align-items: center; gap: 6px;
+}
+.callout p:first-child { margin-top: 0; }
+.callout p:last-child { margin-bottom: 0; }
+.callout.motivation   { --callout-color: var(--accent-amber); }
+.callout.intuition    { --callout-color: var(--accent-teal); }
+.callout.intuition p  { font-family: 'Merriweather', Georgia, serif; font-style: italic; }
+.callout.definition   { --callout-color: var(--accent-blue); }
+.callout.theorem      { --callout-color: var(--accent-green); }
+.callout.proof        { --callout-color: var(--accent-green); }
+.callout.insight      { --callout-color: var(--accent-purple); }
+.callout.example      { --callout-color: var(--accent-orange); }
+.callout.warning      { --callout-color: var(--accent-red); }
+.callout.bridge       { --callout-color: var(--accent-gray); font-style: italic; }
+
+/* Knowledge Unit card */
+details.knowledge-unit {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  margin: 32px 0;
+  overflow: hidden;
+  background: var(--bg-primary);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+details.knowledge-unit > summary {
+  background: var(--bg-secondary);
+  padding: 20px 24px;
+  cursor: pointer;
+  list-style: none;
+  display: flex; align-items: center; gap: 16px;
+  user-select: none;
+}
+details.knowledge-unit > summary::-webkit-details-marker { display: none; }
+.unit-number {
+  width: 38px; height: 38px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+  color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 15px;
+  flex-shrink: 0;
+}
+.unit-name { font-size: 20px; font-weight: 600; color: var(--text-primary); }
+.unit-tagline { font-size: 13px; color: var(--text-secondary); font-style: italic; }
+.unit-body { padding: 26px 28px; }
+
+/* Code */
+pre {
+  background: var(--code-bg);
+  padding: 14px 18px;
+  border-radius: 10px;
+  overflow-x: auto;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; line-height: 1.55;
+  border: 1px solid var(--border);
+  margin: 14px 0;
+}
+code { font-family: 'JetBrains Mono', monospace; font-size: 0.9em; }
+p code, li code {
+  background: var(--bg-secondary);
+  padding: 2px 6px; border-radius: 4px;
+  font-size: 0.88em;
+  color: var(--accent-purple);
+}
+
+/* Tables */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 14px 0;
+  font-size: 14px;
+}
+th, td {
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+th { background: var(--bg-secondary); font-weight: 600; font-size: 13px; }
+
+/* Quiz / reveal */
+.quiz-item {
+  background: var(--bg-secondary);
+  border-radius: 10px; padding: 14px 18px;
+  margin: 12px 0;
+  border: 1px solid var(--border);
+}
+.quiz-question { font-weight: 500; margin-bottom: 8px; }
+.quiz-difficulty {
+  display: inline-block; font-size: 10px; font-weight: 700;
+  padding: 2px 8px; border-radius: 999px;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  margin-right: 8px;
+}
+.quiz-difficulty.easy { background: #dcfce7; color: #166534; }
+.quiz-difficulty.medium { background: #fef3c7; color: #854d0e; }
+.quiz-difficulty.hard { background: #fee2e2; color: #991b1b; }
+html[data-theme="dark"] .quiz-difficulty.easy { background: #14532d; color: #bbf7d0; }
+html[data-theme="dark"] .quiz-difficulty.medium { background: #78350f; color: #fde68a; }
+html[data-theme="dark"] .quiz-difficulty.hard { background: #7f1d1d; color: #fecaca; }
+.reveal-btn {
+  background: var(--accent-blue); color: white;
+  border: none; padding: 6px 14px; border-radius: 8px;
+  font-family: inherit; font-size: 12px; font-weight: 600;
+  cursor: pointer;
+}
+.reveal-btn:hover { opacity: 0.9; }
+.quiz-answer { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border); }
+.quiz-answer.hidden { display: none; }
+
+/* Exercises */
+details.exercise-item {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin: 12px 0;
+  overflow: hidden;
+}
+details.exercise-item > summary {
+  padding: 14px 18px;
+  background: var(--bg-secondary);
+  cursor: pointer;
+  display: flex; gap: 12px; align-items: baseline;
+  list-style: none;
+}
+details.exercise-item > summary::-webkit-details-marker { display: none; }
+.ex-number {
+  font-weight: 700; color: var(--accent-purple);
+  font-size: 13px; text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.ex-title { font-weight: 500; }
+.exercise-solution { padding: 18px 22px; border-top: 1px solid var(--border); }
+
+details.section {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  margin: 24px 0;
+  overflow: hidden;
+}
+details.section > summary {
+  padding: 18px 24px;
+  background: var(--bg-secondary);
+  cursor: pointer; list-style: none;
+  font-weight: 700; font-size: 20px;
+}
+details.section > summary::-webkit-details-marker { display: none; }
+.section-content { padding: 22px 26px; }
+
+/* Mermaid */
+.mermaid { text-align: center; background: var(--bg-secondary); padding: 14px; border-radius: 10px; margin: 16px 0; }
+
+/* Print */
+@media print {
+  aside.sidebar, .theme-toggle, .progress-bar, .reveal-btn { display: none !important; }
+  .layout { grid-template-columns: 1fr; }
+  main.content { padding: 0 20px; max-width: 100%; }
+  details.knowledge-unit, details.exercise-item, details.section { page-break-inside: avoid; }
+  details > summary { cursor: default; }
+  details { open: true; }
+  .quiz-answer { display: block !important; }
+}
+
+/* Mobile */
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+  aside.sidebar { position: relative; height: auto; }
+  main.content { padding: 24px 20px 80px; }
+  h1.hero-title { font-size: 32px; }
+}
+
+.kbd {
+  display: inline-block; padding: 1px 7px;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 4px; font-size: 11px;
+  background: var(--bg-secondary);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+ul, ol { margin: 10px 0; padding-left: 24px; }
+li { margin: 4px 0; }
+.arch-ascii {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; line-height: 1.5;
+  white-space: pre;
+  background: var(--bg-secondary);
+  padding: 18px; border-radius: 10px;
+  border: 1px solid var(--border);
+  overflow-x: auto;
+}
+</style>
+</head>
+<body>
+
+<div class="progress-bar" id="progress"></div>
+<button class="theme-toggle" id="themeToggle" title="Toggle theme">🌙</button>
+
+<div class="layout">
+<aside class="sidebar">
+  <div class="brand">📝 wordAI</div>
+  <div class="brand-sub">Product Manager Study Guide</div>
+  <input type="text" class="toc-search" id="tocSearch" placeholder="🔍 Search sections…" />
+  <nav class="toc" id="toc">
+    <div class="toc-header">Overview</div>
+    <ul>
+      <li><a href="#big-picture"><span class="check">✓</span>Big Picture</a></li>
+      <li><a href="#prerequisites"><span class="check">✓</span>Prerequisites</a></li>
+    </ul>
+    <div class="toc-header">Knowledge Units</div>
+    <ul>
+      <li><a href="#ku-architecture"><span class="check">✓</span>1 · System Architecture</a></li>
+      <li><a href="#ku-storage"><span class="check">✓</span>2 · JSON Storage Layer</a></li>
+      <li><a href="#ku-auth"><span class="check">✓</span>3 · JWT + Silent Refresh</a></li>
+      <li><a href="#ku-documents"><span class="check">✓</span>4 · Documents, Versions & Sharing</a></li>
+      <li><a href="#ku-realtime"><span class="check">✓</span>5 · Real-Time Sync Protocol</a></li>
+      <li><a href="#ku-ai"><span class="check">✓</span>6 · AI Multi-Provider Abstraction</a></li>
+      <li><a href="#ku-editor"><span class="check">✓</span>7 · Tiptap + Ghost Text</a></li>
+      <li><a href="#ku-deviations"><span class="check">✓</span>8 · Engineering Deviations</a></li>
+    </ul>
+    <div class="toc-header">Review</div>
+    <ul>
+      <li><a href="#synthesis"><span class="check">✓</span>Synthesis</a></li>
+      <li><a href="#self-test"><span class="check">✓</span>Self-Test</a></li>
+      <li><a href="#exercises"><span class="check">✓</span>Exercises</a></li>
+      <li><a href="#reference"><span class="check">✓</span>Quick Reference</a></li>
+    </ul>
+  </nav>
+</aside>
+
+<main class="content">
+
+<h1 class="hero-title">wordAI — How It's Built</h1>
+<p class="hero-sub">A PM-focused deep-dive into the real-time collaborative document editor with an integrated AI writing assistant. You will finish knowing every layer: what it is, why it exists, how it works, and what trade-offs were made.</p>
+<div class="hero-meta">
+  <span>AI1220 · Assignment 2</span>
+  <span>MBZUAI · 2026</span>
+  <span>React 18 + FastAPI</span>
+  <span>Tiptap + WebSocket + SSE</span>
+</div>
+
+<!-- =================== BIG PICTURE =================== -->
+<section class="global" id="big-picture">
+<h2>Big Picture</h2>
+<p>wordAI is a browser-based document editor in the spirit of Google Docs, with one defining twist: an AI writing assistant is wired directly into the editor — rewrite, summarise, translate, expand, grammar-check, run a custom instruction, and a Copilot-style ghost-text autocomplete. Multiple people can open the same document and see each other's keystrokes appear within about a tenth of a second, while the backend quietly persists every change to disk.</p>
+<p>The product had to solve three distinct engineering problems at once: <strong>store and retrieve structured data</strong> (documents, users, versions, shares), <strong>propagate live edits across clients</strong> (real-time collaboration), and <strong>stream AI tokens back to the browser</strong> (LLM integration). Rather than force one transport to do all three jobs, wordAI uses a different protocol for each: REST/HTTP for CRUD and auth, a WebSocket relay for live edits and presence, and Server-Sent Events for AI streaming. Everything is kept deliberately simple — no Postgres, no CRDT, no Kubernetes — because the brief is a proof-of-concept.</p>
+<p>By the end of this guide, you will be able to point at any feature a user sees (the "who's here" bar, the AI panel, the version history, the share-by-link button) and trace it top-to-bottom through React → hooks → API clients → FastAPI routers → service layer → JSON on disk. You will also understand the deliberate compromises (CRDT dropped in favour of a JSON broadcast; PostgreSQL swapped for JSON files) and why each was the right call for a PoC.</p>
+
+<div class="callout insight">
+<div class="callout-header">⚡ Roadmap</div>
+<p>We'll build from the <strong>system shape</strong> → <strong>data at rest</strong> → <strong>authenticated identity</strong> → <strong>the document domain</strong> → <strong>real-time fan-out</strong> → <strong>AI streaming</strong> → <strong>rich-text editor + ghost text</strong>, culminating in a review of the <strong>engineering deviations</strong> that define the project's personality.</p>
+</div>
+</section>
+
+<!-- =================== PREREQUISITES =================== -->
+<section class="global" id="prerequisites">
+<h2>Prerequisites Snapshot</h2>
+<p>This guide assumes zero web-engineering experience but benefits from knowing roughly what these things are. If any is unfamiliar, the guide will re-explain it on first use — no need to pause.</p>
+<table>
+<thead><tr><th>Concept</th><th>One-line reminder</th><th>Why we need it</th></tr></thead>
+<tbody>
+<tr><td>HTTP request/response</td><td>Browser asks, server answers; each exchange is independent.</td><td>Used for auth, CRUD, sharing (Units 3–4).</td></tr>
+<tr><td>WebSocket</td><td>A persistent two-way channel between browser and server.</td><td>Used for real-time edit broadcast (Unit 5).</td></tr>
+<tr><td>Server-Sent Events (SSE)</td><td>A one-way stream of text events from server to browser.</td><td>Used for AI token streaming (Unit 6).</td></tr>
+<tr><td>JWT (JSON Web Token)</td><td>A signed blob the server trusts so it doesn't need to look you up.</td><td>Authentication everywhere (Unit 3).</td></tr>
+<tr><td>React</td><td>Frontend library: describe the UI as a function of state.</td><td>The entire frontend (Units 5, 7).</td></tr>
+<tr><td>FastAPI / Python</td><td>Python web framework with auto-generated OpenAPI docs.</td><td>The entire backend.</td></tr>
+<tr><td>Tiptap / ProseMirror</td><td>A rich-text editor toolkit for the browser.</td><td>The editor surface (Unit 7).</td></tr>
+<tr><td>LLM (Large Language Model)</td><td>An AI model that generates text one token at a time.</td><td>The AI features (Unit 6).</td></tr>
+</tbody>
+</table>
+</section>
+
+<!-- =================================================== -->
+<!-- =============  KNOWLEDGE UNIT 1  ================== -->
+<!-- =================================================== -->
+<details class="knowledge-unit" id="ku-architecture" open>
+<summary>
+  <span class="unit-number">1</span>
+  <div>
+    <div class="unit-name">System Architecture &amp; Transport Choices</div>
+    <div class="unit-tagline">Map every feature to the right protocol and the right layer</div>
+  </div>
+</summary>
+<div class="unit-body">
+
+<div class="callout motivation">
+<div class="callout-header">🎯 Motivation</div>
+<p>Before wordAI had any working code, the team had to answer one question: <em>what pipe does each feature flow through?</em> A document save (a one-off request) is nothing like a live keystroke broadcast (a continuous stream), which is nothing like an AI token dribbling in a character at a time. Forcing them all through one transport (say, polling every feature over plain HTTP) would either make the UI feel sluggish or waste enormous bandwidth. The project therefore separates concerns by transport.</p>
+</div>
+
+<div class="callout intuition">
+<div class="callout-header">💡 Intuition</div>
+<p>Think of wordAI as a house with three different utility lines: a <strong>water line</strong> for occasional big deliveries (HTTP for CRUD), a <strong>telephone line</strong> that stays open all day for small back-and-forth chatter (WebSocket for live edits), and a <strong>ticker tape</strong> that drops paper slips one at a time (SSE for AI streaming). All three enter the same house (the backend), but each handles the traffic pattern it was built for.</p>
+</div>
+
+<div class="callout definition">
+<div class="callout-header">📘 Definition — The system at 30,000 ft</div>
+<p>wordAI is a two-sided web application:</p>
+<ul>
+<li><strong>Frontend</strong>: a single-page React 18 app built with Vite, running entirely in the browser at <code>http://localhost:5173</code>. Rich text is edited with Tiptap (a ProseMirror wrapper). State is held in Zustand stores. Styling is Tailwind.</li>
+<li><strong>Backend</strong>: a FastAPI 0.111 server running on <code>http://localhost:8000</code> under Uvicorn. It exposes REST endpoints, a WebSocket endpoint, and an SSE endpoint. All data is persisted to JSON files on disk under <code>backend/data/</code>.</li>
+</ul>
+<p>The two sides communicate over three transports:</p>
+<ol>
+<li><strong>HTTP + JWT</strong> — auth, document CRUD, version history, sharing, AI history retrieval, per-user AI settings.</li>
+<li><strong>WebSocket</strong> — live edit broadcast and presence (who's connected to the same document).</li>
+<li><strong>Server-Sent Events (SSE)</strong> — token-by-token streaming of AI output from the backend.</li>
+</ol>
+</div>
+
+<h3 style="margin-top:26px;">Unpacking — every feature, mapped to its transport</h3>
+<table>
+<thead><tr><th>User-facing feature</th><th>Transport</th><th>Endpoint family</th></tr></thead>
+<tbody>
+<tr><td>Login / register / refresh</td><td>HTTP POST</td><td><code>/api/auth/*</code></td></tr>
+<tr><td>Create / open / rename / delete document</td><td>HTTP</td><td><code>/api/documents/*</code></td></tr>
+<tr><td>Auto-save (every 1.5 s of pause)</td><td>HTTP PATCH</td><td><code>/api/documents/{id}</code></td></tr>
+<tr><td>See another user's keystrokes appear live</td><td>WebSocket</td><td><code>/ws/{doc_id}</code></td></tr>
+<tr><td>See "N people are here" bar</td><td>WebSocket</td><td>same channel, <code>awareness</code> frames</td></tr>
+<tr><td>Click "Rewrite" and watch the AI type</td><td>SSE</td><td><code>POST /api/ai/{doc_id}/stream</code></td></tr>
+<tr><td>Ghost text autocomplete after 3 s pause</td><td>SSE</td><td>same endpoint, <code>feature: autocomplete</code></td></tr>
+<tr><td>Version history list + restore</td><td>HTTP</td><td><code>/api/documents/{id}/versions/*</code></td></tr>
+<tr><td>Share by email / by link</td><td>HTTP</td><td><code>/api/documents/{id}/shares</code>, <code>/share-links</code></td></tr>
+</tbody>
+</table>
+
+<h3>How it works — the high-level diagram</h3>
+<div class="arch-ascii">
+┌─────────────────────────────────────┐             ┌──────────────────────────────┐
+│            BROWSER                  │             │         FastAPI Backend      │
+│                                     │             │                              │
+│   React 18 + Tiptap editor          │   HTTP ──▶  │  /api/auth/*                 │
+│                                     │   (REST)    │  /api/documents/*            │
+│   Zustand stores: auth, doc, theme  │             │  /api/ai/*   /api/settings/* │
+│                                     │             │                              │
+│   Hooks:                            │   WS  ◀─▶   │  /ws/{doc_id}                │
+│   • useAutoSave   (HTTP PATCH)      │             │    ConnectionManager (relay) │
+│   • useRealtimeSync (WebSocket)     │             │                              │
+│   • useAI          (SSE)            │   SSE ◀──   │  stream_ai_response()        │
+│   • useGhostText   (SSE)            │             │                              │
+│                                     │             │  Storage: JSONStore (lock +  │
+│   Axios client w/ silent 401→refresh│             │           flush-on-write)    │
+└─────────────────────────────────────┘             └────────────┬─────────────────┘
+                                                                 │
+                                                       Outbound HTTPS
+                                                                 │
+                                            ┌────────────────────┴───────────────────┐
+                                            │  LLM providers:                        │
+                                            │  DeepSeek · OpenAI · Anthropic · Grok  │
+                                            └────────────────────────────────────────┘
+</div>
+
+<div class="callout insight">
+<div class="callout-header">⚡ Key Insight — the "three pipes" pattern is not arbitrary</div>
+<p>Each transport is the minimum-complexity answer to a specific traffic pattern:</p>
+<ul>
+<li><strong>HTTP</strong> for one-shot, request/response shaped work (CRUD). It's stateless, cache-friendly, and every tool on earth understands it.</li>
+<li><strong>WebSocket</strong> for symmetric, many-small-messages-per-second traffic (keystrokes). HTTP would require reconnecting for every frame; long-polling is clumsy.</li>
+<li><strong>SSE</strong> for one-way, server-pushes-many-chunks traffic (LLM streaming). WebSocket would work but is overkill — SSE is a single HTTP response that the server keeps writing to, so it plays nicely with standard load balancers and CORS.</li>
+</ul>
+</div>
+
+<h3>Repository layout</h3>
+<pre><code class="language-text">wordai/
+├── backend/
+│   ├── app/
+│   │   ├── main.py              # FastAPI app factory + lifespan
+│   │   ├── config.py            # Pydantic settings (reads .env)
+│   │   ├── auth/                # register, login, refresh, /me
+│   │   ├── documents/           # CRUD + versions + shares + share-links
+│   │   ├── ai/                  # multi-provider streaming; prompts/*.txt
+│   │   ├── websocket/           # JSON relay + presence
+│   │   ├── storage/             # JSONStore (single source of truth)
+│   │   ├── settings/            # per-user AI provider config
+│   │   └── middleware/auth.py   # JWT dependency
+│   ├── data/*.json              # users, documents, versions, shares, ai_history…
+│   ├── requirements.txt
+│   └── tests/                   # 36 pytest tests
+├── frontend/
+│   └── src/
+│       ├── App.tsx              # router + protected routes
+│       ├── api/                 # axios clients (+ 401 interceptor)
+│       ├── components/          # editor, AI panel, share modal, toolbar…
+│       ├── extensions/          # custom Tiptap plugins (ghost text)
+│       ├── hooks/               # useAutoSave, useRealtimeSync, useAI, useGhostText
+│       ├── pages/               # Login, Register, Dashboard, Editor, SharedDoc
+│       └── store/               # Zustand stores
+└── run.sh                       # one-command dev startup</code></pre>
+
+<div class="callout example">
+<div class="callout-header">🔢 Example — tracing a single keystroke</div>
+<p>Alice types the letter <code>h</code> into a document that Bob also has open. Concretely:</p>
+<ol>
+<li>The key event fires Tiptap's <code>update</code> handler in Alice's browser.</li>
+<li><code>useRealtimeSync</code> (frontend hook) throttles for 80 ms then sends a WebSocket frame <code>{"type":"edit","html":"&lt;p&gt;h&lt;/p&gt;","origin":"alice-a9f2"}</code>.</li>
+<li>The FastAPI <code>ConnectionManager</code> receives the frame and fans it out to every other socket in that document's room — Bob's tab gets it.</li>
+<li>Bob's <code>useRealtimeSync</code> sees <code>origin ≠ my clientId</code>, calls <code>editor.commands.setContent(...)</code>, and preserves his caret.</li>
+<li>Separately, Alice's <code>useAutoSave</code> hook (triggered by the same edit) waits 1.5 s, then sends <code>PATCH /api/documents/{id}</code> over HTTP to persist the content.</li>
+</ol>
+<p>The live feel comes from the WebSocket path (~100 ms). Durability comes from the HTTP path (~1.5 s). Neither knows about the other — they are two independent subsystems operating on the same editor state.</p>
+</div>
+
+<div class="callout warning">
+<div class="callout-header">⚠️ Common Mistake</div>
+<p>Students often assume the WebSocket is the source of truth for the document. It is not. The WebSocket is a <strong>pure relay</strong> — it never writes to disk. If the backend restarts and no client is connected, the next client to open the doc loads from the JSON file that the HTTP auto-save path wrote. Lose the HTTP path and the document vanishes on restart; lose the WebSocket and collaboration feels laggy but nothing is lost.</p>
+</div>
+
+<div class="quiz-item">
+<div class="quiz-question"><span class="quiz-difficulty easy">Easy</span>Q: If the browser needs to receive many small AI tokens as they're generated, which of the three transports is chosen, and why?</div>
+<button class="reveal-btn" onclick="this.nextElementSibling.classList.toggle('hidden')">Show Answer</button>
+<div class="quiz-answer hidden">
+<p>SSE. The flow is strictly one-way (server → client), so a full bidirectional WebSocket is overkill. SSE rides on a normal HTTP response, so it inherits CORS, auth headers, and proxy behaviour with no extra work.</p>
+</div>
+</div>
+
+<div class="quiz-item">
+<div class="quiz-question"><span class="quiz-difficulty medium">Medium</span>Q: Why does the auto-save still run even though the WebSocket is already broadcasting every keystroke to everyone?</div>
+<button class="reveal-btn" onclick="this.nextElementSibling.classList.toggle('hidden')">Show Answer</button>
+<div class="quiz-answer hidden">
+<p>The WebSocket is <em>ephemeral</em> — it forwards frames but never writes to disk. If no one had run HTTP auto-save, every document would evaporate the moment the last client disconnected. The two paths have different responsibilities: WebSocket = <strong>live fan-out</strong>; HTTP = <strong>durability</strong>.</p>
+</div>
+</div>
+
+<div class="callout bridge">
+<div class="callout-header">→ Up Next</div>
+<p>We just said the HTTP path is what makes data durable. So where does that data actually live? Not in PostgreSQL — in plain JSON files. Unit 2 explains how that works without becoming a threading nightmare.</p>
+</div>
+
+</div>
+</details>
+
+<!-- =================================================== -->
+<!-- =============  KNOWLEDGE UNIT 2  ================== -->
+<!-- =================================================== -->
+<details class="knowledge-unit" id="ku-storage" open>
+<summary>
+  <span class="unit-number">2</span>
+  <div>
+    <div class="unit-name">JSON File Storage Layer</div>
+    <div class="unit-tagline">A single Python dict in memory, flushed to disk on every write</div>
+  </div>
+</summary>
+<div class="unit-body">
+
+<div class="callout motivation">
+<div class="callout-header">🎯 Motivation</div>
+<p>Assignment 1 called for PostgreSQL. Running Postgres means installing it, configuring it, writing migrations, and maintaining connection pools — a lot of ceremony for a grader to set up before they can try your PoC. The assignment explicitly allows file-based persistence, and the team took that escape hatch. But "file-based" still has to answer: how do we <em>read</em> it fast, and how do we stop two threads from corrupting the file at the same time?</p>
+</div>
+
+<div class="callout intuition">
+<div class="callout-header">💡 Intuition</div>
+<p>Imagine a library where the full catalogue lives on a whiteboard on the wall (fast to read), and every time a librarian adds a book they copy the whole whiteboard into a ledger locked in a safe (durable). Only one librarian holds the key to the safe at a time (a single lock). No database. No migrations. Just a dict in memory and a JSON file on disk.</p>
+</div>
+
+<div class="callout definition">
+<div class="callout-header">📘 Definition — <code>JSONStore</code></div>
+<p>In <code>backend/app/storage/json_store.py</code>, the <code>JSONStore</code> class holds seven Python dicts — one per entity type — and a <code>threading.Lock</code>. On process startup, each dict is hydrated from its corresponding JSON file. Every mutating method acquires the lock, updates the in-memory dict, and calls <code>_flush()</code> to rewrite all seven files. A single module-level singleton (<code>store</code>) is imported everywhere.</p>
+<pre><code class="language-python">self._users           = {}   # user_id      -> user dict
+self._documents       = {}   # doc_id       -> doc dict
+self._document_versions = {} # version_id   -> version dict
+self._shares          = {}   # share_id     -> share dict
+self._share_links     = {}   # token        -> link dict
+self._ai_history      = {}   # interaction_id -> interaction dict
+self._ai_settings     = {}   # user_id      -> ai provider settings</code></pre>
+</div>
+
+<h3>How it works — the mutating-write pattern</h3>
+<pre><code class="language-python">def create_document(self, doc_data: Dict) -> Dict:
+    with self._lock:                         # ① acquire the single lock
+        self._documents[doc_data["id"]] = doc_data   # ② mutate in-memory
+        self._flush()                        # ③ rewrite all seven JSON files
+    return doc_data</code></pre>
+<p>Three observations, each deliberate:</p>
+<ol>
+<li><strong>One lock, not per-entity locks.</strong> Simpler reasoning: any write blocks any other write. With small files and few writers, contention is negligible.</li>
+<li><strong>Reads are lock-free.</strong> Methods like <code>get_document()</code> just return the dict reference. Python's GIL makes single-key dict reads atomic, so a read during a write either sees the old value or the new — never a torn one.</li>
+<li><strong>Every write flushes everything.</strong> Wasteful at scale, but at PoC scale (megabytes of JSON) it takes milliseconds and guarantees that disk state never lags memory by more than one operation.</li>
+</ol>
+
+<div class="callout insight">
+<div class="callout-header">⚡ Key Insight — the interface is what matters, not the implementation</div>
+<p>Every router in the backend calls <code>store.get_document(...)</code>, <code>store.update_document(...)</code>, etc. None of them know (or care) that behind this interface is a dict-and-a-lock rather than a SQL query. Swapping this for a real database in production would mean rewriting one file (<code>json_store.py</code>) — every router, service, and test keeps working. This is the "repository pattern" in its simplest form.</p>
+</div>
+
+<h3>The seven collections — what they each hold</h3>
+<table>
+<thead><tr><th>Dict</th><th>Key</th><th>What the value is</th></tr></thead>
+<tbody>
+<tr><td><code>users</code></td><td>UUID</td><td><code>{id, username, email, hashed_password, created_at}</code></td></tr>
+<tr><td><code>documents</code></td><td>UUID</td><td><code>{id, title, content (HTML), owner_id, created_at, updated_at}</code></td></tr>
+<tr><td><code>document_versions</code></td><td>UUID</td><td>Full snapshot: <code>{id, doc_id, version_number, content, author_id, created_at}</code></td></tr>
+<tr><td><code>shares</code></td><td>UUID</td><td>Direct user-to-doc grant: <code>{id, doc_id, user_id, role}</code></td></tr>
+<tr><td><code>share_links</code></td><td>random token</td><td><code>{token, doc_id, role, expires_at, created_by}</code></td></tr>
+<tr><td><code>ai_history</code></td><td>UUID</td><td>Every LLM call: <code>{id, doc_id, user_id, feature, input_text, prompt_used, response_text, accepted}</code></td></tr>
+<tr><td><code>ai_settings</code></td><td>user_id</td><td>Per-user provider: <code>{provider, api_key, base_url, model}</code></td></tr>
+</tbody>
+</table>
+
+<div class="callout example">
+<div class="callout-header">🔢 Example — cascading delete</div>
+<p>Suppose user Alice deletes a document. The naïve approach would leave orphaned version snapshots, dangling share rows, and unreachable AI-history entries in memory forever. <code>JSONStore.delete_document()</code> does the cascade manually, while holding the lock:</p>
+<pre><code class="language-python">def delete_document(self, doc_id: str) -> bool:
+    with self._lock:
+        if doc_id not in self._documents: return False
+        del self._documents[doc_id]
+        for vid in [k for k,v in self._document_versions.items() if v["doc_id"]==doc_id]:
+            del self._document_versions[vid]
+        for sid in [k for k,v in self._shares.items() if v["doc_id"]==doc_id]:
+            del self._shares[sid]
+        for tok in [k for k,v in self._share_links.items() if v["doc_id"]==doc_id]:
+            del self._share_links[tok]
+        for aid in [k for k,v in self._ai_history.items() if v["doc_id"]==doc_id]:
+            del self._ai_history[aid]
+        self._flush()
+    return True</code></pre>
+<p>In SQL this would be <code>ON DELETE CASCADE</code>; in wordAI it's five list comprehensions inside one lock.</p>
+</div>
+
+<div class="callout warning">
+<div class="callout-header">⚠️ Common Mistake</div>
+<p>Don't assume this would survive production traffic. Every write rewrites ~7 files, so writes cost O(total data). Under load, the single lock becomes the bottleneck and the "flush everything" pattern kills disk throughput. That is fine for a PoC serving a few users and a few hundred documents; it is emphatically not fine for 10 000 users.</p>
+</div>
+
+<div class="quiz-item">
+<div class="quiz-question"><span class="quiz-difficulty easy">Easy</span>Q: Why is there a single global lock rather than one lock per entity type?</div>
+<button class="reveal-btn" onclick="this.nextElementSibling.classList.toggle('hidden')">Show Answer</button>
+<div class="quiz-answer hidden"><p>Because <code>_flush()</code> rewrites all seven files at once. Even a write that only touches <code>_documents</code> needs exclusive access to the disk layer. A per-entity lock would either require fine-grained flushing (one file per lock, more complexity) or would be pointless (you'd need all locks to flush safely anyway).</p></div>
+</div>
+
+<div class="quiz-item">
+<div class="quiz-question"><span class="quiz-difficulty medium">Medium</span>Q: A reviewer says: "This violates ACID. Writes aren't atomic across files." Is that right?</div>
+<button class="reveal-btn" onclick="this.nextElementSibling.classList.toggle('hidden')">Show Answer</button>
+<div class="quiz-answer hidden"><p>Strictly, yes — a power failure between <code>_dump_json(users)</code> and <code>_dump_json(documents)</code> could leave the two files inconsistent. The project acknowledges this as a PoC compromise (see DEVIATIONS.md §1). Production would wrap the flush in a single atomic write (e.g. write-temp-then-rename) or use a real database.</p></div>
+</div>
+
+<div class="callout bridge">
+<div class="callout-header">→ Up Next</div>
+<p>We now have a durable place to put users. But <em>how</em> do users prove who they are when they call the API? That's authentication — passwords, JWTs, and a clever trick that makes expired tokens invisible to the user.</p>
+</div>
+
+</div>
+</details>
+
+<!-- =================================================== -->
+<!-- =============  KNOWLEDGE UNIT 3  ================== -->
+<!-- =================================================== -->
+<details class="knowledge-unit" id="ku-auth" open>
+<summary>
+  <span class="unit-number">3</span>
+  <div>
+    <div class="unit-name">JWT Authentication with Silent Refresh</div>
+    <div class="unit-tagline">Log in once; never see "session expired" while you're editing</div>
+  </div>
+</summary>
+<div class="unit-body">
+
+<div class="callout motivation">
+<div class="callout-header">🎯 Motivation</div>
+<p>Every protected API call needs to answer "who is calling?" instantly, without hitting the database for every single keystroke-save. The classic solution is a short-lived token the client carries on every request. But short-lived means it expires — and if a user is deep in an editing session, a sudden "you were logged out" popup is infuriating. wordAI wants the security of short expirations <em>and</em> the feel of a session that never ends.</p>
+</div>
+
+<div class="callout intuition">
+<div class="callout-header">💡 Intuition</div>
+<p>Think of a theme park with a day pass and a season pass. The <strong>day pass</strong> (access token) lasts 30 minutes and is scanned at every ride. The <strong>season pass</strong> (refresh token) lives in your wallet for a week and is only used to get a new day pass when the old one expires. The client never lets the user see the day pass running out — it quietly trades the season pass for a fresh day pass behind the scenes.</p>
+</div>
+
+<div class="callout definition">
+<div class="callout-header">📘 Definition — two tokens, two purposes</div>
+<p>On login, the server returns a pair of JSON Web Tokens:</p>
+<table>
+<thead><tr><th>Token</th><th>Lifetime</th><th>Used for</th><th>Claim <code>type</code></th></tr></thead>
+<tbody>
+<tr><td>Access token</td><td>30 min</td><td>Attached as <code>Authorization: Bearer …</code> on every protected API call</td><td><code>"access"</code></td></tr>
+<tr><td>Refresh token</td><td>7 days</td><td>Sent only to <code>POST /api/auth/refresh</code> to get a new access token</td><td><code>"refresh"</code></td></tr>
+</tbody>
+</table>
+<p>Both are signed with the backend's <code>JWT_SECRET_KEY</code> using HS256. Both carry the user's id as <code>sub</code>. The server stores nothing — it just verifies the signature and expiry.</p>
+</div>
+
+<h3>How it works — the login path</h3>
+<pre><code class="language-python"># backend/app/auth/service.py
+def login_user(email: str, password: str) -> Token:
+    user = store.get_user_by_email(email)
+    if not user or not verify_password(password, user["hashed_password"]):
+        raise HTTPException(401, "Incorrect email or password")
+    payload = {"sub": user["id"]}
+    return Token(
+        access_token=create_access_token(payload),    # exp +30 min, type="access"
+        refresh_token=create_refresh_token(payload),  # exp +7 days, type="refresh"
+    )</code></pre>
+<p>Passwords are never stored in clear text — <code>hash_password()</code> uses <code>passlib.CryptContext(schemes=["bcrypt"])</code>, which salts and stretches the password before storage. <code>verify_password()</code> does the constant-time comparison on login.</p>
+
+<h3>How it works — protecting a route</h3>
+<pre><code class="language-python"># backend/app/middleware/auth.py
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+
+def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
+    payload = decode_token(token)                       # verifies signature + expiry
+    if payload.get("type") != "access":                 # reject refresh tokens here
+        raise HTTPException(401, "Expected an access token")
+    user = store.get_user(payload["sub"])
+    if not user: raise HTTPException(401, "User not found")
+    return user</code></pre>
+<p>Any FastAPI route that writes <code>current_user: dict = Depends(get_current_user)</code> is now protected. A missing header, an invalid signature, an expired token, or a refresh token sneaked into an access-token slot all produce a 401.</p>
+
+<div class="callout insight">
+<div class="callout-header">⚡ Key Insight — the silent refresh trick</div>
+<p>The magic isn't on the server — it's on the client, in <code>frontend/src/api/axios.ts</code>. An Axios <em>response interceptor</em> watches every reply. If it sees a 401, it:</p>
+<ol>
+<li>Marks the original request as "about to retry" (<code>_retry = true</code>) so we don't loop forever.</li>
+<li>Calls <code>POST /api/auth/refresh</code> with the stored refresh token.</li>
+<li>Stores the new access token, retries the original request with the new header.</li>
+<li>Returns the retried response to the caller — as if the 401 never happened.</li>
+</ol>
+<p>From the user's point of view, there was a single successful save. From the network tab's point of view, there was a 401, a refresh, and a retry. This is why the DEVIATIONS doc calls it "strictly better UX than a modal."</p>
+</div>
+
+<div class="callout example">
+<div class="callout-header">🔢 Example — a PATCH at minute 31</div>
+<p>Alice logged in at 10:00. Her access token expires at 10:30. She keeps typing; at 10:31 <code>useAutoSave</code> fires.</p>
+<ol>
+<li>Axios sends <code>PATCH /api/documents/abc</code> with the stale token.</li>
+<li>Backend <code>decode_token()</code> raises <code>JWTError</code> → HTTP 401.</li>
+<li>Browser's response interceptor catches the 401, calls <code>POST /api/auth/refresh</code> with the refresh token (still valid until 10:00 + 7 days).</li>
+<li>Backend returns <code>{access_token: "eyJ..."}</code> — signed with a fresh 30-min expiry.</li>
+<li>Interceptor stores it, retries the PATCH. 200 OK.</li>
+<li>Alice sees "Saved" — she never knew anything happened.</li>
+</ol>
+<p>The <code>isRefreshing</code> flag and <code>failedQueue</code> in <code>axios.ts</code> are there to handle the concurrent case: if five requests fail at once, only one refresh call is made and the other four wait for it.</p>
+</div>
+
+<div class="callout warning">
+<div class="callout-header">⚠️ Common Mistake</div>
+<p>Don't put the refresh token in a place a protected route can accidentally receive it. <code>get_current_user()</code> explicitly checks <code>type == "access"</code> precisely because a refresh token would otherwise pass signature verification and let an attacker do more than they should. A refresh token is <em>only</em> valid at <code>/api/auth/refresh</code>.</p>
+</div>
+
+<div class="callout warning">
+<div class="callout-header">⚠️ Common Mistake</div>
+<p>The <code>localStorage</code>-based token store is vulnerable to XSS: any script that runs in the browser can read the token. For a PoC this is acceptable; production should prefer HttpOnly cookies.</p>
+</div>
+
+<h3>Edge case — the WebSocket</h3>
+<p>WebSockets don't support custom headers in the browser, so the frontend passes the access token as a query parameter: <code>ws://host:8000/ws/{doc_id}?token=eyJ…</code>. The backend (<code>backend/app/websocket/router.py</code>) calls the same <code>decode_token()</code> helper before accepting the upgrade. Share-link guests bypass JWT entirely and pass <code>share_token=…</code> instead — the same router handles both paths.</p>
+
+<div class="quiz-item">
+<div class="quiz-question"><span class="quiz-difficulty easy">Easy</span>Q: Why does the access token expire after only 30 minutes if the refresh token lasts a week?</div>
+<button class="reveal-btn" onclick="this.nextElementSibling.classList.toggle('hidden')">Show Answer</button>
+<div class="quiz-answer hidden"><p>Blast-radius minimisation. The access token is sent on every API call and therefore has many copies in logs, memory, and network paths. A short expiry means a stolen access token is useless in 30 minutes. The refresh token is only used against one endpoint and therefore leaks less — so it can afford a longer lifetime.</p></div>
+</div>
+
+<div class="quiz-item">
+<div class="quiz-question"><span class="quiz-difficulty medium">Medium</span>Q: What prevents an infinite loop of 401 → refresh → 401 if the refresh token is also expired?</div>
+<button class="reveal-btn" onclick="this.nextElementSibling.classList.toggle('hidden')">Show Answer</button>
+<div class="quiz-answer hidden"><p>Two guards. First, the interceptor marks the request with <code>_retry = true</code> before retrying, so a second 401 on the same request won't try to refresh again. Second, if the refresh call itself fails, <code>clearAuthAndRedirect()</code> wipes localStorage and navigates to <code>/login</code>, breaking any further retries.</p></div>
+</div>
+
+<div class="callout bridge">
+<div class="callout-header">→ Up Next</div>
+<p>Now that we know <em>who</em> is calling, we can look at <em>what</em> they call us about most often: documents. CRUD, versions, and two flavours of sharing.</p>
+</div>
+
+</div>
+</details>
+
+<!-- =================================================== -->
+<!-- =============  KNOWLEDGE UNIT 4  ================== -->
+<!-- =================================================== -->
+<details class="knowledge-unit" id="ku-documents" open>
+<summary>
+  <span class="unit-number">4</span>
+  <div>
+    <div class="unit-name">Documents, Versions &amp; Sharing</div>
+    <div class="unit-tagline">The domain that 80 % of user value flows through</div>
+  </div>
+</summary>
+<div class="unit-body">
+
+<div class="callout motivation">
+<div class="callout-header">🎯 Motivation</div>
+<p>A document editor without shareable, versioned documents isn't a product. Users need four things: create/edit/delete their own docs, restore "oh no, I deleted a paragraph" mistakes, invite specific people, and occasionally paste a link into Slack so <em>anyone</em> with the link can view or edit. wordAI implements all four in a single feature module.</p>
+</div>
+
+<div class="callout intuition">
+<div class="callout-header">💡 Intuition</div>
+<p>Think of a Google Doc. It has one owner, a few named collaborators (each with a role), a revision history you can scroll back through, and a "share this link" button that generates a URL anyone can open. wordAI replicates that mental model almost exactly — just with simpler guts underneath.</p>
+</div>
+
+<div class="callout definition">
+<div class="callout-header">📘 Definition — the three access paths to a document</div>
+<p>Any HTTP call that touches a document must answer "does this caller have permission?" There are three legitimate answers:</p>
+<ol>
+<li><strong>Owner</strong> — <code>document.owner_id == current_user.id</code>. Full control.</li>
+<li><strong>Explicit share</strong> — a row in the <code>shares</code> dict: <code>{doc_id, user_id, role: "editor"|"viewer"}</code>. Created by the owner via the Share Modal.</li>
+<li><strong>Share link</strong> — a row in the <code>share_links</code> dict: <code>{token, doc_id, role, expires_at}</code>. Anyone presenting the token (logged in or not) gets the role the owner baked into the link.</li>
+</ol>
+<p>The helper <code>_get_user_role(doc_id, user_id)</code> returns <code>"owner"</code>, <code>"editor"</code>, <code>"viewer"</code>, or <code>None</code>. Most routes call it once and compare against a minimum-rank requirement: <code>{viewer: 0, editor: 1, owner: 2}</code>.</p>
+</div>
+
+<h3>How it works — the router in one screen</h3>
+<pre><code class="language-python"># backend/app/documents/router.py (trimmed)
+@router.get("/")                          # list my docs + docs shared with me
+@router.post("/")                         # create
+@router.get("/{doc_id}")                  # read
+@router.patch("/{doc_id}")                # update (also accepts ?share_token=…)
+@router.delete("/{doc_id}")               # delete (owner only)
+
+@router.get("/{doc_id}/versions")         # list snapshots
+@router.post("/{doc_id}/versions/{vid}/restore")  # roll back
+
+@router.get("/{doc_id}/shares")           # who has access
+@router.post("/{doc_id}/shares")          # invite by email/username
+@router.patch("/{doc_id}/shares/{uid}")   # change their role
+@router.delete("/{doc_id}/shares/{uid}")  # revoke
+
+@router.post("/{doc_id}/share-links")     # create a link
+@router.get("/{doc_id}/share-links")      # list active links
+@router.delete("/{doc_id}/share-links/{token}")  # revoke a link
+@router.get("/via-link/{token}")          # open a doc via link (no login needed)</code></pre>
+<p>Notice the PATCH endpoint accepts <em>either</em> a logged-in user <em>or</em> a <code>share_token</code> query parameter. That single polymorphism is why the "anyone with the link can edit" feature is essentially free — all downstream logic is the same.</p>
+
+<h3>Version history — snapshot-on-save</h3>
+<p>Every auto-save triggers a <code>create_version</code> call that stores a <em>complete copy</em> of the HTML content along with a monotonically increasing <code>version_number</code>. Restoring a version is just <code>document.content = version.content + bump updated_at</code>. There is no delta storage, no OT log; a 10 KB document creates a 10 KB version record every time.</p>
+<div class="callout warning">
+<div class="callout-header">⚠️ Common Mistake</div>
+<p>If a user types furiously and auto-saves fire every 1.5 s for an hour, the versions list will bloat to ~2400 entries. A production system would coalesce them (e.g. keep per-minute snapshots, or diff-compress). The PoC accepts the bloat — see DEVIATIONS.md §7.</p>
+</div>
+
+<h3>The two sharing mechanisms, side by side</h3>
+<table>
+<thead><tr><th>Aspect</th><th>Explicit share</th><th>Share link</th></tr></thead>
+<tbody>
+<tr><td>Identifier</td><td>UUID share row per <code>(doc, user)</code></td><td>Random opaque token</td></tr>
+<tr><td>Recipient</td><td>Must be a registered wordAI user (looked up by email or username)</td><td>Anyone — even unauthenticated</td></tr>
+<tr><td>Roles</td><td><code>viewer</code> or <code>editor</code></td><td><code>viewer</code> or <code>editor</code></td></tr>
+<tr><td>Revocation</td><td><code>DELETE /shares/{user_id}</code></td><td><code>DELETE /share-links/{token}</code> (the token lookup just misses forever after)</td></tr>
+<tr><td>Frontend route</td><td>Normal editor at <code>/doc/:id</code> once authenticated</td><td>Public route at <code>/shared/:token</code></td></tr>
+</tbody>
+</table>
+
+<div class="callout insight">
+<div class="callout-header">⚡ Key Insight — roles compose down, not up</div>
+<p>If Alice is an <code>editor</code> via a direct share <em>and</em> a <code>viewer</code> via a share link, which role wins? The code checks the JWT path first; if the JWT user has any direct role, that's used. Share-link tokens only kick in when no JWT-bound role is found. This is the right default: an authenticated user's permissions are stable and personal; a shared link is incidental.</p>
+</div>
+
+<div class="callout example">
+<div class="callout-header">🔢 Example — creating a link and using it</div>
+<ol>
+<li>Alice (owner) calls <code>POST /api/documents/abc/share-links</code> with body <code>{role: "editor", expires_in_days: 7}</code>.</li>
+<li>Backend generates a random URL-safe token, stores <code>{token, doc_id: "abc", role: "editor", expires_at, created_by: "alice"}</code>, and returns the token to Alice.</li>
+<li>Alice pastes <code>https://wordai.example/shared/xK9p…</code> into Slack.</li>
+<li>Bob (no account) clicks it. React routes him to <code>SharedDocPage</code>, which calls <code>GET /api/documents/via-link/xK9p…</code>.</li>
+<li>Backend's <code>get_doc_via_share_link</code> looks up the token, attaches role <code>"editor"</code> to the response, and Bob's editor mounts in editable mode.</li>
+<li>Bob's WebSocket connects with <code>?share_token=xK9p…</code> instead of a JWT. The WS router sees no user id, validates the share token, and assigns Bob the guest id <code>guest_xK9p…</code>. His edits broadcast to Alice's tab exactly like any other collaborator's.</li>
+</ol>
+</div>
+
+<div class="quiz-item">
+<div class="quiz-question"><span class="quiz-difficulty easy">Easy</span>Q: A user is not the owner of document <code>X</code>, has no direct share row, and presents no share-link token. What does <code>_get_user_role</code> return?</div>
+<button class="reveal-btn" onclick="this.nextElementSibling.classList.toggle('hidden')">Show Answer</button>
+<div class="quiz-answer hidden"><p><code>None</code>. The caller then raises HTTP 403 (or 404 if the document genuinely doesn't exist).</p></div>
+</div>
+
+<div class="quiz-item">
+<div class="quiz-question"><span class="quiz-difficulty medium">Medium</span>Q: The PM asks: "Can we add a third role, <em>commenter</em>, above viewer but below editor?" Where would you change things?</div>
+<button class="reveal-btn" onclick="this.nextElementSibling.classList.toggle('hidden')">Show Answer</button>
+<div class="quiz-answer hidden"><p>Three places. (1) Add <code>"commenter": 1</code> to the <code>_rank</code> dict wherever it appears (documents/service, ai/router, websocket/router). (2) Update the Pydantic <code>ShareRole</code> enum in <code>documents/models.py</code>. (3) Decide which endpoints require what rank — e.g. commenting might be gated on rank ≥ commenter, AI on ≥ editor. Business logic sits in service.py; router just dispatches.</p></div>
+</div>
+
+<div class="callout bridge">
+<div class="callout-header">→ Up Next</div>
+<p>Docs get saved. Docs get shared. Now the interesting part: when two people are inside the same doc simultaneously, how do their keystrokes reach each other in ~100 ms?</p>
+</div>
+
+</div>
+</details>
+
+<!-- =================================================== -->
+<!-- =============  KNOWLEDGE UNIT 5  ================== -->
+<!-- =================================================== -->
+<details class="knowledge-unit" id="ku-realtime" open>
+<summary>
+  <span class="unit-number">5</span>
+  <div>
+    <div class="unit-name">Real-Time Sync Protocol</div>
+    <div class="unit-tagline">A WebSocket JSON relay, last-writer-wins, deliberately dumb</div>
+  </div>
+</summary>
+<div class="unit-body">
+
+<div class="callout motivation">
+<div class="callout-header">🎯 Motivation</div>
+<p>Two people are typing in the same document. Without live sync, they'd each see only their own work until someone refreshed — Google Docs would feel like email. With live sync, characters appear in everyone's tab within a heartbeat. The industry-standard way to do this is a CRDT (Conflict-free Replicated Data Type) like Yjs — mathematically elegant, merges divergent edits without conflicts, allows remote cursors. The team tried it and hit walls it couldn't afford to keep debugging. What remained was a question: how <em>simply</em> can real-time sync possibly work?</p>
+</div>
+
+<div class="callout intuition">
+<div class="callout-header">💡 Intuition</div>
+<p>Forget operational transforms and CRDTs. Picture a chat room where everyone occasionally shouts their whole essay. Whoever shouted last wrote the essay everyone now sees. That's it. In a room of two, one person is usually typing at a time, so "last shout wins" looks identical to perfect merging. In a room of twenty simultaneous typists it would be chaotic — but wordAI is not optimising for twenty simultaneous typists.</p>
+</div>
+
+<div class="callout definition">
+<div class="callout-header">📘 Definition — the JSON WebSocket protocol</div>
+<p>A single WebSocket endpoint (<code>/ws/{doc_id}</code>) accepts two types of client-to-server frames and emits three types of server-to-client frames. All are JSON text.</p>
+<table>
+<thead><tr><th>Direction</th><th>Type</th><th>Shape</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td>C → S</td><td><code>edit</code></td><td><code>{type, html, origin}</code></td><td>Broadcast my local HTML to peers</td></tr>
+<tr><td>C → S</td><td><code>cursor</code></td><td><code>{type, origin, pos}</code></td><td>Broadcast caret position</td></tr>
+<tr><td>S → C</td><td><code>edit</code></td><td>(same)</td><td>Peer's edit, for you to apply</td></tr>
+<tr><td>S → C</td><td><code>cursor</code></td><td>(same)</td><td>Peer's caret position</td></tr>
+<tr><td>S → C</td><td><code>awareness</code></td><td><code>{type, users:[{user_id, username, color}]}</code></td><td>Who is currently in the room</td></tr>
+</tbody>
+</table>
+<p>The <code>ConnectionManager</code> is stateless about content — it never parses the HTML payload; it only forwards. <code>awareness</code> is derived from its <code>user_info</code> dict and re-broadcast on every connect/disconnect.</p>
+</div>
+
+<h3>How it works — three pieces</h3>
+
+<p><strong>① The server is a relay.</strong> In <code>backend/app/websocket/manager.py</code>:</p>
+<pre><code class="language-python">async def handle_text_message(self, doc_id, conn_id, raw):
+    try: msg = json.loads(raw)
+    except Exception: return
+    if msg.get("type") not in ("edit", "cursor"): return
+    await self.broadcast_text(doc_id, raw, exclude_conn_id=conn_id)</code></pre>
+<p>That is the entire sync logic on the server. Receive a frame → forward it to everyone else in the same <code>doc_id</code> room. Nothing is stored. Nothing is transformed. If a frame is malformed, it is silently dropped.</p>
+
+<p><strong>② Presence is derived, not broadcast-by-clients.</strong> On <code>connect()</code>, the server assigns the new socket a colour from an 8-colour palette (<code>#F44336</code>, <code>#2196F3</code>, …) and stores <code>{user_id, username, color}</code> in <code>user_info[doc_id][conn_id]</code>. It then emits an <code>awareness</code> frame to the whole room. The <code>PresenceBar</code> on the frontend just renders the users list from the last awareness it received.</p>
+
+<p><strong>③ The client debounces sends and applies receives carefully.</strong> In <code>frontend/src/hooks/useRealtimeSync.ts</code>:</p>
+<pre><code class="language-typescript">const THROTTLE_MS = 80;
+const onUpdate = () =&gt; {
+  if (applyingRemoteRef.current) return;          // don't echo remote edits
+  const elapsed = Date.now() - lastSentAtRef.current;
+  if (elapsed &gt;= THROTTLE_MS) flush();             // leading edge: send NOW
+  else if (!sendTimerRef.current)
+    sendTimerRef.current = setTimeout(flush, THROTTLE_MS - elapsed); // trailing
+};</code></pre>
+<p>The throttle is <em>leading-edge</em>: the first keystroke in a burst fires immediately (no warm-up feel), and subsequent keystrokes within 80 ms coalesce into a single trailing send with the latest HTML. On receive:</p>
+<pre><code class="language-typescript">if (msg.type !== 'edit' || msg.origin === clientId) return;      // ignore own echoes
+const { from, to } = editor.state.selection;                     // save caret
+applyingRemoteRef.current = true;
+editor.commands.setContent(msg.html, false);                     // replace content
+editor.commands.setTextSelection({ from: Math.min(from, size), to: Math.min(to, size) });
+applyingRemoteRef.current = false;</code></pre>
+<p><code>applyingRemoteRef</code> is the guard that prevents the echo chamber — when <code>setContent</code> fires the editor's own <code>update</code> event, <code>onUpdate</code> bails out instead of re-broadcasting what we just received.</p>
+
+<div class="callout insight">
+<div class="callout-header">⚡ Key Insight — the caret preservation trick</div>
+<p>Replacing the document's HTML normally nukes the user's caret, producing the "cursor jumps to the top" bug that plagues naïve live-sync implementations. The fix is 3 lines: remember <code>selection.from</code> and <code>to</code> before <code>setContent</code>, clamp them to the new document size, then <code>setTextSelection</code>. Because both documents are nearly identical (the peer only typed one character), the clamped offsets land on the right visual position.</p>
+</div>
+
+<div class="callout example">
+<div class="callout-header">🔢 Example — a typing burst from Alice, as seen by the server</div>
+<p>Alice types "hello" at t = 0 ms. What does the server see?</p>
+<table>
+<thead><tr><th>t (ms)</th><th>Event in Alice's browser</th><th>Frame sent?</th></tr></thead>
+<tbody>
+<tr><td>0</td><td>Types "h"</td><td>✅ leading edge — sends <code>{edit, "&lt;p&gt;h&lt;/p&gt;", alice-a9f2}</code></td></tr>
+<tr><td>40</td><td>Types "e"</td><td>⏱ schedules trailing (in 40 ms)</td></tr>
+<tr><td>70</td><td>Types "l"</td><td>⏱ still scheduled; timer will grab latest HTML</td></tr>
+<tr><td>80</td><td>(timer fires)</td><td>✅ sends <code>{edit, "&lt;p&gt;hel&lt;/p&gt;", alice-a9f2}</code></td></tr>
+<tr><td>100</td><td>Types "l"</td><td>⏱ schedules trailing</td></tr>
+<tr><td>140</td><td>Types "o"</td><td>⏱ updates scheduled HTML</td></tr>
+<tr><td>160</td><td>(timer fires)</td><td>✅ sends <code>{edit, "&lt;p&gt;hello&lt;/p&gt;", alice-a9f2}</code></td></tr>
+</tbody>
+</table>
+<p>Five keystrokes → three frames. Bob sees the content visibly growing, but without the bandwidth cost of one frame per key.</p>
+</div>
+
+<div class="callout warning">
+<div class="callout-header">⚠️ Common Mistake — misunderstanding last-writer-wins</div>
+<p>If Alice and Bob type into the same paragraph <em>at the same time</em>, the later frame wins. Alice types "cat", Bob types "dog" into the same spot; whichever arrives at the server second is the one everyone sees. No merging, no operational transform. This is fine for the typical Google-Docs-ish workflow (one person types at a time with occasional interleaving) and is the baseline the assignment explicitly allows. It is NOT a CRDT. The project acknowledges this trade-off in DEVIATIONS.md §2.</p>
+</div>
+
+<div class="callout warning">
+<div class="callout-header">⚠️ Common Mistake</div>
+<p>Viewers (users with <code>viewer</code> role, so <code>editor.isEditable === false</code>) <em>don't send</em>, but they <em>do receive</em>. The frontend gates sending with <code>if (!editor.isEditable) return;</code>. Skip that check and a read-only user would try to broadcast, get rejected by the role check, and flood console errors.</p>
+</div>
+
+<div class="quiz-item">
+<div class="quiz-question"><span class="quiz-difficulty easy">Easy</span>Q: Why does every frame carry an <code>origin</code> field?</div>
+<button class="reveal-btn" onclick="this.nextElementSibling.classList.toggle('hidden')">Show Answer</button>
+<div class="quiz-answer hidden"><p>Because the server fan-outs to "all other sockets" including the sender's other tabs. The <code>origin</code> string is a random client id generated on first mount; the receive handler ignores any frame whose <code>origin</code> matches the local client, so your own edits never round-trip back to overwrite your caret.</p></div>
+</div>
+
+<div class="quiz-item">
+<div class="quiz-question"><span class="quiz-difficulty medium">Medium</span>Q: If the backend crashes and restarts, what happens to the document content? What happens to presence?</div>
+<button class="reveal-btn" onclick="this.nextElementSibling.classList.toggle('hidden')">Show Answer</button>
+<div class="quiz-answer hidden"><p><strong>Content survives</strong> — it was durably written to <code>backend/data/documents.json</code> by the HTTP auto-save path. When clients reconnect, they reload the document from the API and resume.<br><strong>Presence resets</strong> — the <code>user_info</code> dict lived only in memory. The new <code>ConnectionManager</code> starts empty and repopulates as clients reconnect. Users briefly see each other disappear and reappear in the presence bar.</p></div>
+</div>
+
+<div class="quiz-item">
+<div class="quiz-question"><span class="quiz-difficulty hard">Hard</span>Q: Why not also persist WebSocket edits on the server, to make the HTTP autosave redundant?</div>
+<button class="reveal-btn" onclick="this.nextElementSibling.classList.toggle('hidden')">Show Answer</button>
+<div class="quiz-answer hidden"><p>You could, but you'd then have two write paths racing for the same file. The current design deliberately keeps the WebSocket layer <em>stateless</em>: one owner of writes (HTTP), one owner of fan-out (WebSocket). Simpler to reason about, easier to test, and the ~1.5 s save-debounce is fast enough for a PoC. A production system might well invert this — persist via WebSocket on the server and treat HTTP save as a fallback.</p></div>
+</div>
+
+<div class="callout bridge">
+<div class="callout-header">→ Up Next</div>
+<p>Collaboration is solved. Now meet the most marketable feature: the AI panel. How does a single "Rewrite" button drive four different LLM providers, stream tokens in real time, and record every interaction?</p>
+</div>
+
+</div>
+</details>
+
+<!-- =================================================== -->
+<!-- =============  KNOWLEDGE UNIT 6  ================== -->
+<!-- =================================================== -->
+<details class="knowledge-unit" id="ku-ai" open>
+<summary>
+  <span class="unit-number">6</span>
+  <div>
+    <div class="unit-name">AI Multi-Provider Abstraction</div>
+    <div class="unit-tagline">One button, four LLM providers, token-by-token streaming</div>
+  </div>
+</summary>
+<div class="unit-body">
+
+<div class="callout motivation">
+<div class="callout-header">🎯 Motivation</div>
+<p>Assignment 1 mandated "changing the LLM provider should touch one place." In 2026, users also bring their own keys — some prefer DeepSeek for cost, others OpenAI for familiarity, a few run a self-hosted OpenAI-compatible endpoint. The AI module has to (a) abstract the provider, (b) let each user choose theirs and supply their own key, (c) stream tokens back to the browser so the UI feels alive, and (d) remember what the AI said so we can show history and audit costs.</p>
+</div>
+
+<div class="callout intuition">
+<div class="callout-header">💡 Intuition</div>
+<p>Picture a translator at a UN podium. The diplomat (user) points at a feature ("Rewrite this in a formal tone"). The translator looks up the diplomat's preferred interpreter from their badge (per-user settings), hands that interpreter the appropriate cue card (a prompt template), and relays the interpreter's output word by word to everyone in the hall (SSE streaming). The translator doesn't care whether the interpreter speaks with a French or Japanese accent — they all produce words that reach the audience.</p>
+</div>
+
+<div class="callout definition">
+<div class="callout-header">📘 Definition — the four moving parts</div>
+<ol>
+<li><strong>Feature enum</strong> (<code>AIFeature</code>) — one of <code>rewrite</code>, <code>summarize</code>, <code>translate</code>, <code>expand</code>, <code>grammar</code>, <code>custom</code>, <code>autocomplete</code>.</li>
+<li><strong>Prompt templates</strong> — plain-text files in <code>backend/app/ai/prompts/*.txt</code>, one per feature, with <code>{placeholders}</code> for dynamic values.</li>
+<li><strong>Provider resolver</strong> (<code>_get_client_config</code>) — per-user lookup that returns <code>(api_key, base_url, model, provider)</code>. Falls back to an env-level DeepSeek key if the user hasn't configured one.</li>
+<li><strong>Stream generator</strong> (<code>stream_ai_response</code>) — an async generator that opens a streaming call to the chosen provider and yields SSE frames until the provider finishes.</li>
+</ol>
+</div>
+
+<h3>How it works — the three-step flow</h3>
+<p><strong>Step 1. Build the prompt.</strong> <code>_build_prompt()</code> maps the feature to a template file and fills in placeholders:</p>
+<pre><code class="language-python">if feature == AIFeature.rewrite:
+    return _prompt_loader.render(
+        "rewrite",              # loads prompts/rewrite.txt
+        text=text,
+        tone=opts.get("tone", "neutral"),
+        context=context,
+    )</code></pre>
+<p>The template itself is plain English:</p>
+<pre><code class="language-text">You are an expert writing assistant. Rewrite the following text with a {tone}
+tone. Preserve the meaning and key information. Output only the rewritten
+text, nothing else.
+
+Original text:
+{text}
+
+Context (surrounding text for reference):
+{context}</code></pre>
+<p>Prompts are cached on first read. Tweaking a prompt is a file edit — no code change, no redeploy of logic.</p>
+
+<p><strong>Step 2. Resolve the provider and open a stream.</strong></p>
+<pre><code class="language-python">api_key, base_url, model, provider = _get_client_config(user_id)
+
+if provider == "claude":
+    async with anthropic.AsyncAnthropic(api_key=api_key).messages.stream(
+        model=model, max_tokens=2048,
+        messages=[{"role": "user", "content": prompt}]
+    ) as stream:
+        async for text in stream.text_stream: ...
+elif provider == "deepseek":
+    _deepseek.configure(api_key=api_key, base_url=base_url, model=model)
+    stream = await _deepseek.stream(prompt)
+    async for chunk in stream: ...
+else:  # openai, grok, custom openai-compatible
+    openai_client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+    stream = await openai_client.chat.completions.create(
+        model=model, messages=[{"role":"user","content":prompt}], stream=True)
+    async for chunk in stream: ...</code></pre>
+<p>Three branches, one contract: each yields text chunks as they arrive. Claude uses the Anthropic SDK's message stream; everyone else uses the OpenAI SDK (which DeepSeek, Grok, and custom endpoints all speak natively).</p>
+
+<p><strong>Step 3. Yield SSE frames and log the interaction.</strong></p>
+<pre><code class="language-python">for each chunk:
+    full_response.append(delta)
+    yield f"data: {json.dumps({'chunk': delta, 'done': False})}\n\n"
+
+# when provider finishes:
+_log_interaction(interaction_id, doc_id, user_id, feature,
+                 input_text, prompt_used, response_text)
+yield f"data: {json.dumps({'chunk': '', 'done': True, 'interaction_id': interaction_id})}\n\n"</code></pre>
+<p>Each frame is one SSE event. The frontend consumes them with <code>parseSSEStream</code> in <code>frontend/src/api/ai.ts</code> and appends <code>chunk</code> to React state until <code>done: true</code>.</p>
+
+<div class="callout insight">
+<div class="callout-header">⚡ Key Insight — the two axes of abstraction</div>
+<p>There are actually <em>two</em> abstractions stacked here:</p>
+<ul>
+<li><strong>Feature abstraction</strong> — adding a new feature means adding one <code>.txt</code> file and one elif branch in <code>_build_prompt</code>. No change to the provider code.</li>
+<li><strong>Provider abstraction</strong> — adding a new provider means adding one elif branch in <code>stream_ai_response</code>. No change to any prompt or feature.</li>
+</ul>
+<p>The 7 × 4 matrix of (feature × provider) is implemented as 7 + 4 additions, not 28 — because the prompt and provider axes are orthogonal.</p>
+</div>
+
+<h3>Authentication — the resolver accepts either a JWT or a share-link token</h3>
+<p>AI calls come through <code>/api/ai/{doc_id}/stream</code>. The route calls <code>_resolve_actor(request, doc_id, share_token)</code> which tries JWT first, then share-token. Either path must resolve to a caller with role ≥ <code>editor</code> (viewers cannot burn the owner's API credits) — otherwise 403. Only after resolution does the stream begin, so unauthenticated clients get an immediate error, not a partial response.</p>
+
+<div class="callout example">
+<div class="callout-header">🔢 Example — user clicks "Rewrite in formal tone"</div>
+<ol>
+<li>Frontend <code>useAI.streamAI()</code> posts <code>{feature:"rewrite", selected_text:"hey team lets ship", options:{tone:"formal"}}</code> to <code>/api/ai/abc/stream</code>.</li>
+<li>Backend resolves caller (JWT → user Alice, role=owner), builds prompt by filling <code>rewrite.txt</code> with the text and tone.</li>
+<li>Alice's AI settings say <code>provider: "openai", model: "gpt-4o-mini"</code>. Backend opens a streaming chat-completions call.</li>
+<li>OpenAI yields chunks: <code>"Dear"</code>, <code>" team,"</code>, <code>" I"</code>, <code>" would"</code>, …</li>
+<li>Each chunk becomes one SSE frame: <code>data: {"chunk":"Dear","done":false}\n\n</code>, then <code>data: {"chunk":" team,","done":false}\n\n</code>, …</li>
+<li>Frontend appends to <code>result</code> state; the AI Result Card visibly types the rewrite.</li>
+<li>When OpenAI is done, backend logs the interaction and yields a final <code>{chunk:"",done:true,interaction_id:"i-42"}</code> frame.</li>
+<li>User clicks "Accept" → frontend posts to <code>/interactions/i-42/outcome</code> with <code>accepted:true</code>. Backend updates the history row so analytics know which suggestions users actually took.</li>
+</ol>
+</div>
+
+<div class="callout warning">
+<div class="callout-header">⚠️ Common Mistake — keys in the browser</div>
+<p>The user supplies their own API key via the AI Settings modal. That key is stored on the backend (<code>ai_settings.json</code>) keyed by user id, not in the browser. Never expose an API key to the frontend — a curl against wordAI's backend uses the user's JWT and the backend looks up the key. This is also why AI endpoints require an <em>editor</em> role: a viewer who could call <code>/api/ai/…</code> would effectively drain the owner's LLM credits.</p>
+</div>
+
+<div class="callout warning">
+<div class="callout-header">⚠️ Common Mistake — SSE is not JSON</div>
+<p>Each SSE event is the literal string <code>"data: " + json_text + "\n\n"</code>. The <code>\n\n</code> terminator tells the client "event boundary." Forget it and the browser's EventSource parser never emits a <code>message</code>. The backend uses <code>f"data: {json.dumps(...)}\n\n"</code> — that exact format.</p>
+</div>
+
+<div class="quiz-item">
+<div class="quiz-question"><span class="quiz-difficulty easy">Easy</span>Q: Why is ghost-text autocomplete just another feature enum value instead of its own endpoint?</div>
+<button class="reveal-btn" onclick="this.nextElementSibling.classList.toggle('hidden')">Show Answer</button>
+<div class="quiz-answer hidden"><p>Because the underlying protocol (prompt → provider → SSE) is identical. Only the prompt template (<code>autocomplete.txt</code>) and the input shape (it uses <code>context_before</code> / <code>context_after</code> instead of <code>selected_text</code>) differ. Reusing <code>/api/ai/{doc_id}/stream</code> kept the router and frontend plumbing tiny.</p></div>
+</div>
+
+<div class="quiz-item">
+<div class="quiz-question"><span class="quiz-difficulty medium">Medium</span>Q: Imagine Anthropic ships a brand-new provider tomorrow. What's the minimum change to support it?</div>
+<button class="reveal-btn" onclick="this.nextElementSibling.classList.toggle('hidden')">Show Answer</button>
+<div class="quiz-answer hidden"><p>If it's OpenAI-API-compatible (most new providers are): add it as an option in the AI Settings UI; set <code>base_url</code> to the new provider's endpoint; no backend code changes at all. If it has a unique SDK (like Anthropic): add one elif in <code>stream_ai_response</code> that uses the new SDK to yield text chunks — about 10 lines. Everything else — prompts, UI, history — is unchanged.</p></div>
+</div>
+
+<div class="callout bridge">
+<div class="callout-header">→ Up Next</div>
+<p>We've covered how AI results get to the browser. But what shows them? What actually holds the user's text? That's Tiptap — and tucked inside Tiptap is the custom extension that powers Copilot-style ghost text.</p>
+</div>
+
+</div>
+</details>
+
+<!-- =================================================== -->
+<!-- =============  KNOWLEDGE UNIT 7  ================== -->
+<!-- =================================================== -->
+<details class="knowledge-unit" id="ku-editor" open>
+<summary>
+  <span class="unit-number">7</span>
+  <div>
+    <div class="unit-name">Tiptap Editor &amp; Ghost-Text Autocomplete</div>
+    <div class="unit-tagline">A rich-text core, plus one custom plugin that mimics Copilot</div>
+  </div>
+</summary>
+<div class="unit-body">
+
+<div class="callout motivation">
+<div class="callout-header">🎯 Motivation</div>
+<p>A document editor needs to handle bold, italics, headings, lists, tables, links, images, code blocks, and everything in between. Writing that from scratch is a year of work. Tiptap wraps ProseMirror (a well-engineered contentEditable abstraction) and gives wordAI the whole thing for free. On top of that, the product wanted Copilot-style ghost text — faint grey predictions that appear after you pause and disappear when you keep typing. That required one new Tiptap extension.</p>
+</div>
+
+<div class="callout intuition">
+<div class="callout-header">💡 Intuition</div>
+<p>Tiptap is the editor's <em>body</em> (it holds the document and dispatches events). The ghost-text extension is a small <em>whisper in the editor's ear</em>: "draw this grey text at the caret but don't treat it as real content." If the user accepts (Tab), the whisper becomes real characters. If they keep typing, the whisper vanishes. The user never sees the bookkeeping.</p>
+</div>
+
+<div class="callout definition">
+<div class="callout-header">📘 Definition — Tiptap in wordAI</div>
+<p>The editor is constructed in <code>RichTextEditor.tsx</code> with a starter kit (paragraphs, headings, lists, bold, italic, etc.) plus extensions for tables, task lists, links, images, code blocks with syntax highlighting (lowlight), character count, placeholder, typography, text alignment, underline, colour, and the custom <code>GhostTextExtension</code>. The editor instance is exposed via an <code>EditorContext</code> so the toolbar, AI panel, and floating AI menu can all act on the same document.</p>
+</div>
+
+<h3>How it works — the three hooks that drive the editor</h3>
+<table>
+<thead><tr><th>Hook</th><th>Trigger</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><code>useRealtimeSync</code></td><td>Every <code>editor.update</code></td><td>Throttles 80 ms, sends JSON edit frame via WebSocket. Receives peers' edits and applies them.</td></tr>
+<tr><td><code>useAutoSave</code></td><td>Content changes</td><td>Debounces 1.5 s, PATCHes <code>/api/documents/{id}</code>. Flushes on <code>pagehide</code> using <code>fetch(..., {keepalive: true})</code>.</td></tr>
+<tr><td><code>useGhostText</code></td><td>3 s of typing inactivity</td><td>Streams <code>feature: "autocomplete"</code> from the AI endpoint. Renders the result as ProseMirror decorations (grey inline text, not real content).</td></tr>
+</tbody>
+</table>
+
+<h3>The ghost-text plugin — how the grey text works</h3>
+<p>ProseMirror has a concept called <em>decorations</em>: visual overlays that render as if they were content but don't affect the document model. <code>GhostTextExtension.ts</code> registers a ProseMirror plugin that holds a small state object <code>{text, isPredicting}</code> and produces a widget decoration at the caret position whenever <code>text</code> is non-empty.</p>
+<p>The hook in <code>useGhostText.ts</code> orchestrates:</p>
+<ol>
+<li>On every <code>editor.update</code>, check: is there a selection? is the caret at end of doc? has 3 s of inactivity elapsed?</li>
+<li>If yes, cancel any previous stream, start a new SSE call with <code>context_before</code> (everything before caret) and <code>context_after</code> (everything after).</li>
+<li>For each incoming chunk, call <code>editor.commands.setGhostText(accumulated, isPredicting=true)</code> — the plugin updates its decoration.</li>
+<li>When the stream ends, set <code>isPredicting=false</code> (the plugin now shows the ghost as "ready to accept").</li>
+<li><kbd>Tab</kbd> accepts → the plugin inserts the text as real content and clears itself. <kbd>Esc</kbd> or any further keystroke dismisses.</li>
+</ol>
+
+<div class="callout insight">
+<div class="callout-header">⚡ Key Insight — why decorations, not real content</div>
+<p>If the ghost text were real document content, every WebSocket peer would see the ghost prediction appear in <em>their</em> document — because the real-time sync broadcasts HTML. Decorations are purely client-side visual sugar: ProseMirror doesn't include them in <code>editor.getHTML()</code>, so they never leak into the edit frame. Each user sees their own ghost text and nobody else's. This is the same mechanism Copilot uses in VS Code.</p>
+</div>
+
+<div class="callout example">
+<div class="callout-header">🔢 Example — ghost text appearing and being accepted</div>
+<ol>
+<li>Alice types "The quarterly revenue was " then stops.</li>
+<li>3 s pass with no keystrokes. <code>useGhostText</code> fires.</li>
+<li>It grabs context_before = "The quarterly revenue was ", context_after = "".</li>
+<li>Streams from the AI provider using <code>autocomplete.txt</code>.</li>
+<li>Provider yields <code>"up"</code>, <code>" 12%"</code>, <code>" year"</code>, <code>"-over"</code>, <code>"-year"</code>, …</li>
+<li>Each chunk updates the plugin's ghost-text state. Alice sees "up 12% year-over-year…" appear in grey.</li>
+<li>Alice presses <kbd>Tab</kbd>. The plugin inserts the accumulated ghost as real content, clears itself, WebSocket broadcasts the new full HTML to peers.</li>
+<li>Bob's tab sees the completed sentence appear all at once, as if Alice had typed it in one burst.</li>
+</ol>
+</div>
+
+<div class="callout warning">
+<div class="callout-header">⚠️ Common Mistake</div>
+<p>Ghost text must be cancelled the moment the user types, clicks elsewhere, or selects text. The hook has three cancellation paths: <code>handleUpdate</code> (on any edit), <code>handleSelectionUpdate</code> (on any selection change), and the <code>dismissedRef</code> (set by Escape, cleared by next keystroke). Miss any of them and the ghost will "fight" the user's typing, replacing characters they already entered.</p>
+</div>
+
+<div class="quiz-item">
+<div class="quiz-question"><span class="quiz-difficulty easy">Easy</span>Q: Why is ghost text disabled when the caret is not at the end of the document (<code>textAfter.trim().length > 0</code>)?</div>
+<button class="reveal-btn" onclick="this.nextElementSibling.classList.toggle('hidden')">Show Answer</button>
+<div class="quiz-answer hidden"><p>Because ghost text is a <em>continuation</em>, not an insertion. Predicting what should follow when there's already content after the caret would usually produce gibberish (ghost text ≠ the existing next paragraph). Restricting to end-of-doc gives the model a clean "write the next few words" task.</p></div>
+</div>
+
+<div class="quiz-item">
+<div class="quiz-question"><span class="quiz-difficulty medium">Medium</span>Q: Why does the hook prepend a leading space to the ghost text when the text before the caret doesn't end with whitespace?</div>
+<button class="reveal-btn" onclick="this.nextElementSibling.classList.toggle('hidden')">Show Answer</button>
+<div class="quiz-answer hidden"><p>The LLM doesn't know whether the user already typed a trailing space. If the user stopped at "hello" (no trailing space) and the model returns "world", directly inserting it yields "helloworld". The <code>needsLeadingSpace</code> check in <code>useGhostText</code> prepends <code>" "</code> so the display becomes "hello world".</p></div>
+</div>
+
+<div class="callout bridge">
+<div class="callout-header">→ Up Next</div>
+<p>We've now walked every layer of the working product. The last unit isn't about code — it's about the engineering <em>story</em>: what was promised in Assignment 1, what was delivered, and why each deviation was the right call.</p>
+</div>
+
+</div>
+</details>
+
+<!-- =================================================== -->
+<!-- =============  KNOWLEDGE UNIT 8  ================== -->
+<!-- =================================================== -->
+<details class="knowledge-unit" id="ku-deviations" open>
+<summary>
+  <span class="unit-number">8</span>
+  <div>
+    <div class="unit-name">Engineering Deviations — what changed and why</div>
+    <div class="unit-tagline">The list of trade-offs that define wordAI's personality</div>
+  </div>
+</summary>
+<div class="unit-body">
+
+<div class="callout motivation">
+<div class="callout-header">🎯 Motivation</div>
+<p>Assignment 1 was an architecture document. Assignment 2 was the implementation. The gap between them is where engineering judgement lives. As the PM, you should be able to defend every deviation to a grader (or a future hire): was it a compromise or an improvement? What did it cost? What did it buy? <code>DEVIATIONS.md</code> is the primary artefact here — this unit distils its eight entries into a PM-readable form.</p>
+</div>
+
+<div class="callout intuition">
+<div class="callout-header">💡 Intuition</div>
+<p>Think of Assignment 1 as the architect's blueprint and Assignment 2 as the house that actually got built. Some rooms came out exactly as drawn. Some were shrunk to fit the budget. A couple became bigger than planned. None of the deviations are surprises — each has a paper trail explaining the substitution. That discipline is how you ship in a constrained timeline without creating a documentation mess later.</p>
+</div>
+
+<div class="callout definition">
+<div class="callout-header">📘 Definition — the eight deviations</div>
+<table>
+<thead><tr><th>#</th><th>What changed</th><th>Verdict</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>PostgreSQL → JSON files on disk</td><td>Improvement for PoC scope</td></tr>
+<tr><td>2</td><td>CRDT (Yjs) → simple JSON WebSocket broadcast, last-writer-wins</td><td>Compromise on conflicts, improvement on reliability</td></tr>
+<tr><td>3</td><td>Single provider (OpenAI) → multi-provider abstraction</td><td>Improvement</td></tr>
+<tr><td>4</td><td>Added ghost-text autocomplete (not in A1)</td><td>Improvement (bonus feature)</td></tr>
+<tr><td>5</td><td>Added share-by-link (not in A1)</td><td>Improvement (bonus points)</td></tr>
+<tr><td>6</td><td>AI history in DB → JSON log</td><td>Consistent compromise (follows #1)</td></tr>
+<tr><td>7</td><td>OT log for versions → full snapshots</td><td>Compromise for simplicity</td></tr>
+<tr><td>8</td><td>"Session expired" modal → silent axios refresh</td><td>Improvement</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>How to think about each deviation</h3>
+
+<p><strong>#1 JSON over PostgreSQL.</strong> The assignment permits file-based persistence for a PoC. Trading SQL for <code>JSONStore</code> removes setup friction (no Docker, no migrations) and costs only production-grade durability — which the PoC doesn't need. The repository pattern means swapping back is a one-file change.</p>
+
+<p><strong>#2 JSON broadcast over Yjs (CRDT).</strong> An earlier implementation used Tiptap's <code>Collaboration</code> extension with <code>y-websocket</code>. Local edits silently failed to push — no <code>sync-update</code> frames ever reached the server. After several hours at the Yjs/y-websocket/Tiptap boundary the team chose a protocol they could fully reason about. The cost is the CRDT bonus (conflict-free concurrent edits) and remote cursors; the gain is reliability and debuggability. This is the most consequential deviation.</p>
+
+<p><strong>#3 Multi-provider LLM.</strong> A1 specified OpenAI-only. The team generalised to DeepSeek, OpenAI, Anthropic, Grok, and any OpenAI-compatible endpoint — more ambitious than the assignment, and strictly better. Users bring their own keys via a settings modal, so the project itself doesn't have to budget API spend.</p>
+
+<p><strong>#4 Ghost-text autocomplete.</strong> Not in A1. Added because the AI streaming infrastructure was already there and the feature is table stakes for a 2026 AI editor (Copilot, Notion AI). Pure win.</p>
+
+<p><strong>#5 Share-by-link.</strong> Not in A1. Added because it reuses the existing role-check code and earns bonus points. The "anyone with the link" pattern is what makes Google Docs shareable in Slack.</p>
+
+<p><strong>#6 AI history as JSON log.</strong> Follows mechanically from #1. The schema is identical to what A1 specified; only the storage layer differs.</p>
+
+<p><strong>#7 Version snapshots over OT log.</strong> Full snapshots are simpler to implement, easier to reason about on restore, and acceptable storage overhead for small documents. An OT log (operational transform) would be delta-based and space-efficient but dramatically more complex. Production would revisit; PoC skips.</p>
+
+<p><strong>#8 Silent token refresh.</strong> A1 suggested a "session expired" modal. The team chose an Axios interceptor that refreshes invisibly, because breaking a collaborative editing session on token expiry is a terrible UX. Strictly better.</p>
+
+<div class="callout insight">
+<div class="callout-header">⚡ Key Insight — the pattern behind every deviation</div>
+<p>Six of the eight deviations share one template: <em>"replace the sophisticated solution with the simpler one that still satisfies the requirement."</em> JSON files instead of Postgres, snapshots instead of OT logs, broadcast instead of CRDT, one SSE endpoint per feature instead of seven. This is the PoC's dominant engineering principle: deliver the contract, not the implementation ambition. The remaining two (#3, #4, #5, #8) are <em>upgrades</em> — the team spent the saved complexity budget on features with higher marginal user value.</p>
+</div>
+
+<div class="callout example">
+<div class="callout-header">🔢 Example — how to answer a grader's challenge</div>
+<p><em>Grader:</em> "Why didn't you use Yjs? The CRDT bonus was worth points."<br>
+<em>You:</em> "We tried. The Yjs + y-websocket + Tiptap integration was silently dropping local edits in our setup; we burned several hours at that boundary without resolution. We chose to ship a protocol we fully understood (JSON broadcast + last-write-wins) rather than one we couldn't confidently reason about. The assignment explicitly allows last-write-wins as the baseline; we gave up the CRDT bonus in exchange for a reliably-working core feature and documented it in DEVIATIONS.md §2."</p>
+</div>
+
+<div class="callout warning">
+<div class="callout-header">⚠️ Common Mistake</div>
+<p>Don't present the deviations as failures. Each one is an <em>engineered trade-off</em>: a written argument that a cheaper substitution satisfies the contract. Pair every "we dropped X" with "we gained Y" — that's what turns DEVIATIONS.md into a positive artefact instead of a confession.</p>
+</div>
+
+<div class="quiz-item">
+<div class="quiz-question"><span class="quiz-difficulty medium">Medium</span>Q: Which deviation cost the project bonus points? Which earned bonus points?</div>
+<button class="reveal-btn" onclick="this.nextElementSibling.classList.toggle('hidden')">Show Answer</button>
+<div class="quiz-answer hidden"><p><strong>Cost:</strong> #2 (CRDT dropped). <strong>Earned:</strong> #5 (share-by-link), plus partial-acceptance of AI suggestions, plus Playwright E2E tests (mentioned in the README).</p></div>
+</div>
+
+<div class="quiz-item">
+<div class="quiz-question"><span class="quiz-difficulty hard">Hard</span>Q: Suppose an investor says "productise this in 3 months." Which deviation would you reverse first, and why?</div>
+<button class="reveal-btn" onclick="this.nextElementSibling.classList.toggle('hidden')">Show Answer</button>
+<div class="quiz-answer hidden"><p>#1 (JSON → PostgreSQL). It's the lowest-risk upgrade (the repository interface is already there), it unlocks multi-instance deployment (no single-process file lock), and it's a prerequisite for every other production concern: backups, replicas, analytics, migrations. #2 (CRDT) is a distant second — worth doing before you have concurrent editors, but irrelevant if you're still single-instance and users mostly take turns.</p></div>
+</div>
+
+</div>
+</details>
+
+<!-- =================== SYNTHESIS =================== -->
+<section class="global" id="synthesis">
+<h2>Synthesis — tying it all together</h2>
+<p>wordAI is a single coherent story about <strong>separating concerns by transport</strong>. HTTP carries durability (CRUD, auth, auto-save). WebSocket carries liveness (edit broadcast, presence). SSE carries incremental output (AI streaming). Everything else is the minimum plumbing to connect the pieces.</p>
+
+<div class="mermaid">
+flowchart TB
+  subgraph Browser
+    UI[React Pages] --> H[Hooks]
+    H --> API[Axios + Fetch]
+    H --> WS[WebSocket client]
+    H --> SSE[SSE parser]
+  end
+  subgraph Backend[FastAPI]
+    R[REST routers] --> SVC[Service layer]
+    WSR[WS /ws/:id] --> CM[ConnectionManager relay]
+    AR[AI /api/ai/:id/stream] --> SV[stream_ai_response]
+    SVC --> ST[(JSONStore)]
+    SV --> ST
+    CM -.no-state.-> ST
+  end
+  API -->|HTTP+JWT| R
+  WS -->|JSON frames| WSR
+  SSE -->|data: lines| AR
+  SV -->|HTTPS| LLM[LLM provider]
+  ST -.flush.-> Disk[(JSON files)]
+</div>
+
+<p>Follow one user action end-to-end and you see the whole architecture: a keystroke drives <em>three</em> concurrent side-effects (WebSocket broadcast, auto-save HTTP, ghost-text SSE after 3 s), each owned by a different hook, each hitting a different backend entry point, each flowing to a different destination (peers, disk, LLM). The fact that they feel like one smooth editor to the user is the system's whole trick.</p>
+
+<div class="callout insight">
+<div class="callout-header">⚡ In three sentences</div>
+<p>wordAI is a React + FastAPI document editor where CRUD is HTTP, live edits are a WebSocket JSON relay with last-writer-wins, and AI features stream tokens via SSE across an abstraction that plugs into four LLM providers. All data is persisted to seven JSON files via a lock-guarded in-memory store, and user sessions never visibly expire because an Axios interceptor silently refreshes JWTs on every 401. The project is a PoC that deliberately trades CRDT conflict-resolution and PostgreSQL durability for reliability, debuggability, and ship-speed.</p>
+</div>
+</section>
+
+<!-- =================== SELF-TEST =================== -->
+<section class="global" id="self-test">
+<h2>Self-Test — 10 questions</h2>
+
+<div class="quiz-item">
+<div class="quiz-question"><span class="quiz-difficulty easy">Easy</span>1. Name each of the three transports wordAI uses and one feature each is responsible for.</div>
+<button class="reveal-btn" onclick="this.nextElementSibling.classList.toggle('hidden')">Show Answer</button>
+<div class="quiz-answer hidden"><p><strong>HTTP</strong> — auth / document CRUD / auto-save. <strong>WebSocket</strong> — live edit broadcast / presence. <strong>SSE</strong> — AI feature streaming / ghost-text autocomplete.</p></div>
+</div>
+
+<div class="quiz-item">
+<div class="quiz-question"><span class="quiz-difficulty easy">Easy</span>2. What is the name of the backend singleton that holds all persistent data in memory?</div>
+<button class="reveal-btn" onclick="this.nextElementSibling.classList.toggle('hidden')">Show Answer</button>
+<div class="quiz-answer hidden"><p><code>store</code>, an instance of <code>JSONStore</code> from <code>backend/app/storage/json_store.py</code>. Every router imports it; every mutation goes through it.</p></div>
+</div>
+
+<div class="quiz-item">
+<div class="quiz-question"><span class="quiz-difficulty medium">Medium</span>3. Explain in your own words why the backend's WebSocket manager deliberately does NOT parse the HTML payload of edit frames.</div>
+<button class="reveal-btn" onclick="this.nextElementSibling.classList.toggle('hidden')">Show Answer</button>
+<div class="quiz-answer hidden"><p>It's a pure relay. Parsing HTML would (a) couple the sync layer to the editor's output format, (b) add CPU cost per frame, and (c) duplicate state that's already owned by the HTTP persistence path. Keeping it opaque means we can change the edit schema (e.g. to ProseMirror JSON) without touching the server.</p></div>
+</div>
+
+<div class="quiz-item">
+<div class="quiz-question"><span class="quiz-difficulty medium">Medium</span>4. A user reports: "After I leave my laptop for an hour and come back, my next save fails." What's the likely cause, and what's the actual code path that usually prevents this from being visible?</div>
+<button class="reveal-btn" onclick="this.nextElementSibling.classList.toggle('hidden')">Show Answer</button>
+<div class="quiz-answer hidden"><p>Cause: the 30-min access token expired. Normally, the Axios response interceptor catches the 401, calls <code>POST /api/auth/refresh</code>, and retries the save — the user sees nothing. If the user reports a failure, either (a) the refresh token also expired (7 days), or (b) the refresh endpoint itself returned an error. Either way <code>clearAuthAndRedirect()</code> fires and they're pushed to <code>/login</code>.</p></div>
+</div>
+
+<div class="quiz-item">
+<div class="quiz-question"><span class="quiz-difficulty medium">Medium</span>5. Why is ghost-text autocomplete implemented as ProseMirror <em>decorations</em> rather than real document content?</div>
+<button class="reveal-btn" onclick="this.nextElementSibling.classList.toggle('hidden')">Show Answer</button>
+<div class="quiz-answer hidden"><p>Because decorations are client-side only — they don't appear in <code>editor.getHTML()</code>. If ghost text were real content, every WebSocket peer would see the grey prediction in their own document (and worse, if two people were editing, their predictions would race). Decorations make the prediction purely a local UX affordance.</p></div>
+</div>
+
+<div class="quiz-item">
+<div class="quiz-question"><span class="quiz-difficulty medium">Medium</span>6. The product manager wants to add a seventh AI feature: "Tone analysis — tell me if this paragraph sounds hostile." Walk through every place you'd touch.</div>
+<button class="reveal-btn" onclick="this.nextElementSibling.classList.toggle('hidden')">Show Answer</button>
+<div class="quiz-answer hidden"><p>(1) Add <code>tone_analysis</code> to <code>AIFeature</code> enum in <code>backend/app/ai/models.py</code>. (2) Create <code>backend/app/ai/prompts/tone_analysis.txt</code>. (3) Add an elif branch in <code>_build_prompt</code>. (4) Add a button to <code>frontend/src/components/ai/AIPanel.tsx</code> and a feature-icon mapping. (5) Optionally update <code>FeatureButton</code> to surface the new option. Provider code, routing, storage, auth: zero changes.</p></div>
+</div>
+
+<div class="quiz-item">
+<div class="quiz-question"><span class="quiz-difficulty hard">Hard</span>7. Two users, Alice and Bob, open the same document. Alice's access token expires mid-session. She keeps typing. Bob sees her edits continue without a pause. Explain why.</div>
+<button class="reveal-btn" onclick="this.nextElementSibling.classList.toggle('hidden')">Show Answer</button>
+<div class="quiz-answer hidden"><p>Two reasons. (a) The live-edit path is WebSocket, and the WebSocket was authenticated once at connect time with whatever token was valid then. The backend doesn't re-verify the JWT on every frame; as long as the socket stays open, frames flow. (b) The auto-save HTTP path independently refreshes the JWT via the Axios interceptor on 401. So Alice's WebSocket stays alive, her saves silently refresh, and Bob sees a smooth stream of edits.</p></div>
+</div>
+
+<div class="quiz-item">
+<div class="quiz-question"><span class="quiz-difficulty hard">Hard</span>8. Compare the share mechanism and the share-link mechanism: when would a PM pick one over the other for a new feature (say, a classroom-wide document)?</div>
+<button class="reveal-btn" onclick="this.nextElementSibling.classList.toggle('hidden')">Show Answer</button>
+<div class="quiz-answer hidden"><p>Direct shares are tied to a specific user-id (needs an account) and are individually revocable; use when you want per-person accountability. Share links are opaque tokens (no account required) and are revoked by invalidating the token; use when you want zero-friction distribution (paste in Slack / email). For a classroom where you know the 20 students' emails, direct shares give each student their own revocable grant. For a 300-student lecture where you don't maintain the roster, a single editor link is simpler.</p></div>
+</div>
+
+<div class="quiz-item">
+<div class="quiz-question"><span class="quiz-difficulty hard">Hard</span>9. Why does the AI endpoint require role ≥ editor rather than just any authenticated caller?</div>
+<button class="reveal-btn" onclick="this.nextElementSibling.classList.toggle('hidden')">Show Answer</button>
+<div class="quiz-answer hidden"><p>Because AI calls consume the owner's API key (or their own if configured). A viewer who could call <code>/api/ai/...</code> could drain credits by repeatedly asking for long completions. The editor-or-above gate is the abuse-prevention layer. It also semantically matches user expectations: viewers read, editors write, AI is a form of writing.</p></div>
+</div>
+
+<div class="quiz-item">
+<div class="quiz-question"><span class="quiz-difficulty hard">Hard</span>10. If you had one engineer-week to productionise wordAI, which deviation would you reverse and which order of tasks would you attempt?</div>
+<button class="reveal-btn" onclick="this.nextElementSibling.classList.toggle('hidden')">Show Answer</button>
+<div class="quiz-answer hidden"><p>Reverse #1 (JSON → PostgreSQL) because it's the bottleneck for every further production concern: multi-instance deployment, backups, analytics, migrations. Order: (1) Swap <code>JSONStore</code> implementation for a SQLAlchemy-backed one (routers unchanged). (2) Add connection pooling and a migrations tool (Alembic). (3) Move API keys out of JSON and into an encrypted secrets table. (4) Rate-limit <code>/api/ai/*</code> per user. (5) Introduce a WebSocket server that persists (so scaling to 2+ backend processes doesn't lose presence). CRDT (#2) is deferred; it's only worth doing when the product has concurrent-editor pain.</p></div>
+</div>
+
+</section>
+
+<!-- =================== EXERCISES =================== -->
+<details class="section" id="exercises">
+<summary>📝 Exercises — five PM-oriented walkthroughs</summary>
+<div class="section-content">
+
+<p>Each exercise has a complete worked solution. Click any title to expand.</p>
+
+<details class="exercise-item">
+<summary class="exercise-summary"><span class="ex-number">Exercise 1</span><span class="ex-title">Trace an auto-save from keystroke to disk</span></summary>
+<div class="exercise-solution">
+<p><strong>Given:</strong> A logged-in user types a character in the editor at 14:02:30.000.</p>
+<p><strong>Find:</strong> The full list of events that lead to the character being durably written to <code>documents.json</code>.</p>
+<p><strong>Solution:</strong></p>
+<ol>
+<li><strong>14:02:30.000</strong> — Tiptap's <code>update</code> event fires. Both <code>useRealtimeSync.onUpdate</code> and <code>useAutoSave.useEffect</code> run.</li>
+<li><strong>14:02:30.002</strong> — <code>useRealtimeSync</code> (leading edge) sends a <code>{type:"edit"}</code> WebSocket frame. Peers see the change within ~100 ms. <em>No disk impact.</em></li>
+<li><strong>14:02:30.002</strong> — <code>useAutoSave</code> marks status "unsaved" and schedules <code>save(content)</code> for <code>14:02:31.502</code> (1500 ms later). Any keystroke before that time resets the timer.</li>
+<li><strong>14:02:31.502</strong> — Timer fires (assuming no further typing). <code>save()</code> calls <code>documentsApi.update(docId, {content})</code>.</li>
+<li><strong>14:02:31.503</strong> — Axios attaches <code>Authorization: Bearer &lt;access_token&gt;</code> and sends <code>PATCH /api/documents/abc</code>.</li>
+<li><strong>14:02:31.510</strong> — FastAPI router <code>update_doc</code> runs, resolves <code>get_optional_user</code> → user. Calls <code>update_document(doc_id, user_id, body)</code> in <code>documents/service.py</code>.</li>
+<li><strong>14:02:31.511</strong> — Service checks role ≥ editor, creates a version snapshot via <code>store.create_version()</code>, then calls <code>store.update_document()</code>.</li>
+<li><strong>14:02:31.512</strong> — <code>JSONStore</code> acquires the lock, updates <code>_documents[abc]</code>, calls <code>_flush()</code> which rewrites all seven JSON files.</li>
+<li><strong>14:02:31.515</strong> — Router returns the updated <code>DocumentResponse</code>. Frontend sets <code>saveStatus: "saved"</code>. User sees the "Saved" indicator.</li>
+</ol>
+<p><strong>Result:</strong> ~1.5 s from keystroke to durable write; ~100 ms from keystroke to peer visibility. The two paths are completely independent.</p>
+</div>
+</details>
+
+<details class="exercise-item">
+<summary class="exercise-summary"><span class="ex-number">Exercise 2</span><span class="ex-title">Reason about the silent-refresh guarantees</span></summary>
+<div class="exercise-solution">
+<p><strong>Given:</strong> A user's access token expired five minutes ago; their refresh token is still valid. They trigger three parallel API calls (save, fetch versions, fetch share list).</p>
+<p><strong>Find:</strong> What exactly happens in the Axios interceptor? How many refresh calls are made?</p>
+<p><strong>Solution:</strong></p>
+<ol>
+<li>All three requests go out with the stale access token, nearly simultaneously.</li>
+<li>The backend rejects all three with <strong>401</strong>. The responses trickle back into the interceptor.</li>
+<li>The first 401 sets <code>isRefreshing = true</code>, marks its request <code>_retry = true</code>, and calls <code>POST /api/auth/refresh</code>.</li>
+<li>While that call is in flight, the second and third 401 arrive. The interceptor sees <code>isRefreshing === true</code> and pushes their <code>(resolve, reject)</code> functions into <code>failedQueue</code> — these promises are pending.</li>
+<li>The refresh call succeeds. <code>processQueue(null, new_access_token)</code> resolves both pending promises with the new token.</li>
+<li>Each queued promise's <code>.then()</code> updates its request's <code>Authorization</code> header and re-sends via <code>api(originalRequest)</code>.</li>
+<li>All three original calls eventually succeed and return to their callers, as if there had been no 401.</li>
+</ol>
+<p><strong>Result:</strong> Exactly <strong>one</strong> refresh call is made even though three 401s were received. This is the purpose of the <code>isRefreshing</code> flag — it serialises refreshes and batches the waiters.</p>
+</div>
+</details>
+
+<details class="exercise-item">
+<summary class="exercise-summary"><span class="ex-number">Exercise 3</span><span class="ex-title">Add a new AI feature (tone analysis) end-to-end</span></summary>
+<div class="exercise-solution">
+<p><strong>Given:</strong> The PM wants a "Tone analysis" button that shows whether a selection reads as hostile, neutral, or warm.</p>
+<p><strong>Find:</strong> List every file touched, the concrete changes, and how you would verify it.</p>
+<p><strong>Solution:</strong></p>
+<ol>
+<li><code>backend/app/ai/models.py</code> — add <code>tone_analysis</code> to the <code>AIFeature</code> enum.</li>
+<li><code>backend/app/ai/prompts/tone_analysis.txt</code> — new file: <em>"Classify the tone of the following text as one of: hostile, neutral, warm. Explain in one sentence. Text: {text}"</em></li>
+<li><code>backend/app/ai/service.py</code> — add an elif branch in <code>_build_prompt</code> that renders <code>tone_analysis</code> with <code>text=text</code>.</li>
+<li><code>frontend/src/types/index.ts</code> (or wherever <code>AIFeature</code> lives) — add the new literal.</li>
+<li><code>frontend/src/components/ai/AIPanel.tsx</code> — add a <code>FeatureButton</code> entry with an icon and label. Wire <code>onClick</code> to call <code>streamAI({feature:"tone_analysis", selected_text})</code>.</li>
+<li><code>frontend/src/components/ai/AIResultCard.tsx</code> — no change (output renders as plain text).</li>
+</ol>
+<p><strong>Verification:</strong></p>
+<ol>
+<li>Run a pytest that posts to <code>/api/ai/{doc_id}/stream</code> with <code>feature: "tone_analysis"</code> and asserts the prompt contains the text.</li>
+<li>Manual: in the editor, select a sentence, click the new button, observe the AI Result Card streaming the classification.</li>
+<li>Check <code>backend/data/ai_history.json</code> contains a new row with <code>feature: "tone_analysis"</code>.</li>
+</ol>
+<p><strong>Effort estimate:</strong> ~30 minutes. Zero architectural work — the abstractions were built for this.</p>
+</div>
+</details>
+
+<details class="exercise-item">
+<summary class="exercise-summary"><span class="ex-number">Exercise 4</span><span class="ex-title">Explain what happens when two users type into the same paragraph simultaneously</span></summary>
+<div class="exercise-solution">
+<p><strong>Given:</strong> Alice and Bob both have the same paragraph selected. At t = 0 Alice types "cat" into a specific spot; at t = 10 ms Bob types "dog" into the same spot.</p>
+<p><strong>Find:</strong> What does each user see, and what is eventually persisted?</p>
+<p><strong>Solution:</strong></p>
+<ol>
+<li>At t = 0, Alice's <code>onUpdate</code> throttle fires (leading edge) — sends <code>{edit, "&lt;p&gt;cat...&lt;/p&gt;", alice}</code>.</li>
+<li>At t = 10, Bob's <code>onUpdate</code> throttle fires — sends <code>{edit, "&lt;p&gt;dog...&lt;/p&gt;", bob}</code>.</li>
+<li>Server receives Alice's frame at t ≈ 2, fans it out: Bob's tab applies "cat" (and loses "dog" briefly, depending on timing).</li>
+<li>Server receives Bob's frame at t ≈ 12, fans it out: Alice's tab applies "dog".</li>
+<li>Final state in both tabs: whichever frame arrived at the server <em>second</em>. If Bob's arrived second, both users end up seeing "dog".</li>
+<li>Meanwhile, Alice's auto-save debounce fires ~1.5 s later with whatever content Alice's editor now holds — "dog" in this example, because she received Bob's frame.</li>
+<li>The document in <code>documents.json</code> therefore reflects "dog" — Alice's "cat" is lost.</li>
+</ol>
+<p><strong>Lesson:</strong> This is the last-writer-wins contract. It is fine for serialised typing (which is the overwhelmingly common case). It fails under true simultaneous conflict. The project acknowledges this explicitly; a CRDT would resolve it. A PM should communicate this limit to sales/marketing — don't promise "conflict-free concurrent editing" in copy.</p>
+</div>
+</details>
+
+<details class="exercise-item">
+<summary class="exercise-summary"><span class="ex-number">Exercise 5</span><span class="ex-title">Defend the architecture to a skeptical CTO</span></summary>
+<div class="exercise-solution">
+<p><strong>Given:</strong> A CTO reviews the codebase and says: "JSON files? A WebSocket relay with no conflict resolution? This is a toy."</p>
+<p><strong>Find:</strong> Write a two-paragraph response that is honest, precise, and defends the choices.</p>
+<p><strong>Solution:</strong></p>
+<blockquote>
+<p>"You're right that this wouldn't run a production SaaS. It isn't meant to — it's the Proof-of-Concept deliverable for AI1220 A2, with a specific brief that allows file-based persistence and last-writer-wins conflict semantics. The architectural contract with A1 is honoured at the <em>interface</em> level: every router and service talks to a <code>JSONStore</code> that mirrors the relational schema one-for-one. Swapping it for SQLAlchemy over Postgres is a single-file change. Every deviation from A1 is documented in DEVIATIONS.md with the rationale and a verdict (compromise vs. improvement).</p>
+<p>Where we went <em>beyond</em> the brief is also real: the AI layer is multi-provider (DeepSeek / OpenAI / Anthropic / Grok / custom OpenAI-compatible) with per-user key storage; we added Copilot-style ghost-text autocomplete; we built share-by-link with configurable roles on top of the direct-share mechanism; the session never visibly expires because Axios silently refreshes JWTs. The CRDT is the one substantial compromise — we tried Yjs, it silently lost frames at the Tiptap integration boundary, and we judged shipping a reliably-working JSON broadcast more valuable than debugging a black-box CRDT stack under time pressure. For a PoC that a grader can run with one <code>pip install</code> and one <code>npm install</code>, we think the trade-offs are defensible."</p>
+</blockquote>
+<p>The structure of a good defence: (1) acknowledge the scope, (2) point at the interface (not the implementation) as the architecture, (3) name one upgrade and one compromise, (4) reference the written artefact.</p>
+</div>
+</details>
+
+</div>
+</details>
+
+<!-- =================== QUICK REFERENCE =================== -->
+<section class="global" id="reference">
+<h2>Quick Reference Card</h2>
+
+<h3>Key files, at a glance</h3>
+<table>
+<thead><tr><th>Concern</th><th>File</th></tr></thead>
+<tbody>
+<tr><td>App factory + routers + lifespan</td><td><code>backend/app/main.py</code></td></tr>
+<tr><td>Settings / env vars</td><td><code>backend/app/config.py</code></td></tr>
+<tr><td>JSON persistence (singleton <code>store</code>)</td><td><code>backend/app/storage/json_store.py</code></td></tr>
+<tr><td>JWT + bcrypt + login/refresh</td><td><code>backend/app/auth/service.py</code></td></tr>
+<tr><td>Route-level auth dependency</td><td><code>backend/app/middleware/auth.py</code></td></tr>
+<tr><td>Document CRUD / versions / shares</td><td><code>backend/app/documents/{router,service}.py</code></td></tr>
+<tr><td>WebSocket relay + presence</td><td><code>backend/app/websocket/{router,manager}.py</code></td></tr>
+<tr><td>AI multi-provider streaming</td><td><code>backend/app/ai/service.py</code>, <code>prompts/*.txt</code></td></tr>
+<tr><td>Silent token-refresh interceptor</td><td><code>frontend/src/api/axios.ts</code></td></tr>
+<tr><td>Real-time sync hook</td><td><code>frontend/src/hooks/useRealtimeSync.ts</code></td></tr>
+<tr><td>Auto-save hook</td><td><code>frontend/src/hooks/useAutoSave.ts</code></td></tr>
+<tr><td>AI streaming hook</td><td><code>frontend/src/hooks/useAI.ts</code></td></tr>
+<tr><td>Ghost-text hook + plugin</td><td><code>frontend/src/hooks/useGhostText.ts</code>, <code>extensions/GhostTextExtension.ts</code></td></tr>
+<tr><td>Router / protected routes</td><td><code>frontend/src/App.tsx</code></td></tr>
+<tr><td>Deviations vs. A1</td><td><code>DEVIATIONS.md</code></td></tr>
+</tbody>
+</table>
+
+<h3>Magic numbers that matter</h3>
+<table>
+<thead><tr><th>Constant</th><th>Value</th><th>Where</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td>Access-token lifetime</td><td>30 min</td><td><code>config.py</code></td><td>How long before silent refresh kicks in</td></tr>
+<tr><td>Refresh-token lifetime</td><td>7 days</td><td><code>config.py</code></td><td>How long until user must log in again</td></tr>
+<tr><td>WebSocket send throttle</td><td>80 ms</td><td><code>useRealtimeSync.ts</code></td><td>Leading-edge throttle for edit frames</td></tr>
+<tr><td>Auto-save debounce</td><td>1500 ms</td><td><code>useAutoSave.ts</code></td><td>Pause in typing before HTTP save fires</td></tr>
+<tr><td>Ghost-text trigger delay</td><td>3000 ms</td><td><code>useGhostText.ts</code></td><td>Inactivity before autocomplete starts</td></tr>
+<tr><td>Presence colour palette</td><td>8 colours</td><td><code>websocket/manager.py</code></td><td>Max distinctly-coloured concurrent users</td></tr>
+</tbody>
+</table>
+
+<h3>The six+one AI features</h3>
+<table>
+<thead><tr><th>Feature</th><th>Prompt file</th><th>Key options</th></tr></thead>
+<tbody>
+<tr><td><code>rewrite</code></td><td><code>rewrite.txt</code></td><td><code>tone</code></td></tr>
+<tr><td><code>summarize</code></td><td><code>summarize.txt</code></td><td><code>format</code>, <code>length</code></td></tr>
+<tr><td><code>translate</code></td><td><code>translate.txt</code></td><td><code>target_language</code></td></tr>
+<tr><td><code>expand</code></td><td><code>expand.txt</code></td><td>(none)</td></tr>
+<tr><td><code>grammar</code></td><td><code>grammar.txt</code></td><td>(none)</td></tr>
+<tr><td><code>custom</code></td><td><code>custom.txt</code></td><td><code>instruction</code></td></tr>
+<tr><td><code>autocomplete</code></td><td><code>autocomplete.txt</code></td><td>(uses <code>context_before</code> / <code>_after</code>)</td></tr>
+</tbody>
+</table>
+
+<h3>The three roles</h3>
+<ul>
+<li><strong>viewer</strong> (rank 0) — may read; WebSocket receives but doesn't send; cannot invoke AI.</li>
+<li><strong>editor</strong> (rank 1) — may read &amp; write; WebSocket bidirectional; may invoke AI.</li>
+<li><strong>owner</strong> (rank 2) — all of editor, plus delete, plus manage shares and share links.</li>
+</ul>
+
+<h3>Running it</h3>
+<pre><code class="language-bash"># One-command dev (after first setup)
+./run.sh
+
+# Manual
+cd backend && source .venv/bin/activate && uvicorn app.main:app --reload --port 8000
+cd frontend && npm run dev   # http://localhost:5173</code></pre>
+
+</section>
+
+<script>
+// Theme toggle
+const toggle = document.getElementById('themeToggle');
+const saved = localStorage.getItem('wordai-sg-theme');
+if (saved === 'dark') {
+  document.documentElement.setAttribute('data-theme', 'dark');
+  toggle.textContent = '☀️';
+  document.getElementById('hljs-light').disabled = true;
+  document.getElementById('hljs-dark').disabled = false;
+}
+toggle.addEventListener('click', () => {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('hljs-light').disabled = !isDark;
+  document.getElementById('hljs-dark').disabled = isDark;
+  toggle.textContent = isDark ? '🌙' : '☀️';
+  localStorage.setItem('wordai-sg-theme', isDark ? 'light' : 'dark');
+});
+
+// Progress bar
+const progressBar = document.getElementById('progress');
+function updateProgress() {
+  const h = document.documentElement;
+  const scrolled = h.scrollTop / (h.scrollHeight - h.clientHeight);
+  progressBar.style.width = Math.min(100, scrolled * 100) + '%';
+}
+document.addEventListener('scroll', updateProgress);
+updateProgress();
+
+// Active TOC highlighting + visited check
+const tocLinks = Array.from(document.querySelectorAll('.toc a'));
+const sections = tocLinks.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+function syncActiveToc() {
+  const pos = window.scrollY + 140;
+  let activeIdx = 0;
+  sections.forEach((sec, i) => {
+    if (sec.offsetTop <= pos) activeIdx = i;
+  });
+  tocLinks.forEach((link, i) => {
+    link.classList.toggle('active', i === activeIdx);
+    if (i <= activeIdx) link.classList.add('visited');
+  });
+}
+document.addEventListener('scroll', syncActiveToc);
+syncActiveToc();
+
+// TOC search
+const search = document.getElementById('tocSearch');
+search.addEventListener('input', e => {
+  const q = e.target.value.toLowerCase();
+  tocLinks.forEach(a => {
+    const match = !q || a.textContent.toLowerCase().includes(q);
+    a.parentElement.style.display = match ? '' : 'none';
+  });
+});
+
+// Syntax highlighting
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('pre code').forEach(el => {
+    try { hljs.highlightElement(el); } catch(e) {}
+  });
+});
+
+// Mermaid init
+if (window.mermaid) {
+  mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'loose' });
+}
+</script>
+
+</main>
+</div>
+</body>
+</html>

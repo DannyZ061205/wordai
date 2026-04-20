@@ -31,11 +31,13 @@ cd wordai
 
 ```bash
 cd backend
-python -m venv .venv && source .venv/bin/activate
+python3 -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env          # fill in DEEPSEEK_API_KEY and JWT_SECRET_KEY
+cp .env.example .env          # fill in JWT_SECRET_KEY (DEEPSEEK_API_KEY is optional — see below)
 uvicorn app.main:app --reload --port 8000
 ```
+
+> **Note:** `uvicorn` keeps the terminal busy. Open a **new terminal tab** for step 3, or skip to step 4 and let `./run.sh` handle both servers for you.
 
 ### 3. Frontend
 
@@ -45,11 +47,19 @@ npm install
 npm run dev                   # starts on http://localhost:5173
 ```
 
-### 4. One-command startup (after first setup)
+### 4. One-command startup (works on a fresh checkout too)
 
 ```bash
 ./run.sh
 ```
+
+On first run, this script creates `backend/.env` from the template, the Python virtualenv, installs `pip` and `npm` dependencies, and launches both servers. On subsequent runs it just launches them.
+
+### Prerequisites
+
+- Python **3.11+**
+- Node.js **18+** (required by Vite 5)
+- npm 9+
 
 ---
 
@@ -57,14 +67,14 @@ npm run dev                   # starts on http://localhost:5173
 
 Copy `backend/.env.example` to `backend/.env` and fill in:
 
-| Variable | Description |
-|----------|-------------|
-| `DEEPSEEK_API_KEY` | Your DeepSeek API key (never commit!) |
-| `JWT_SECRET_KEY` | Random secret for signing JWTs |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | Default 30 |
-| `REFRESH_TOKEN_EXPIRE_DAYS` | Default 7 |
-| `DATA_DIR` | Path for JSON data files (default `./data`) |
-| `CORS_ORIGINS` | Comma-separated allowed origins |
+| Variable | Required? | Description |
+|----------|-----------|-------------|
+| `JWT_SECRET_KEY` | **Yes** | Random secret for signing JWTs — change from the default before any real use |
+| `DEEPSEEK_API_KEY` | Optional | System-wide DeepSeek fallback. Most users skip this and configure their own provider (OpenAI / Anthropic / Grok / DeepSeek / custom) at runtime via **Settings → AI Configuration** |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | Optional | Default `30` |
+| `REFRESH_TOKEN_EXPIRE_DAYS` | Optional | Default `7` |
+| `DATA_DIR` | Optional | Path for JSON data files (default `./data`) |
+| `CORS_ORIGINS` | Optional | Comma-separated allowed origins (default covers `localhost:5173` + `:5174`) |
 
 ---
 

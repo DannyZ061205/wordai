@@ -1,0 +1,13 @@
+AI1220 — Software, Web & Mobile Engineering
+Assignment 2: Collaborative Document Editor with AI Writing Assistant
+
+Team members
+------------
+- Zichen Zhao
+- Ziyue Zhang
+- Kyriakos Tsourekas
+- Ramazan Sadir
+
+GitHub repository
+-----------------------------------------------
+https://github.com/DannyZ061205/wordai
